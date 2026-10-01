@@ -251,6 +251,13 @@ def main():
     if failed != 0:
         print("[error] 测试未全绿（通过 %d / 失败 %d），按约定不更新 AI_CONTEXT.md" % (passed, failed))
         return 1
+    # 性能预算被环境系数缩放过时，一定要说出来：否则「全绿」会被当成「代码没问题」。
+    # 通过数是真跑出来的、和缩放无关；但性能类断言这次不作数。
+    scaled = "\u26a0" in raw
+    if scaled:
+        print("[warn] 本次回归的性能预算被环境系数缩放过（tests/perf_budget.js）——")
+        print("       通过数为真，但性能类断言不作数。要在开发机上复核：删掉 .perf_slack，"
+              "或 SPACE_PERF_SLACK=1。")
     n_testfiles = len(per)
 
     text = read(CTX)
@@ -299,8 +306,9 @@ def main():
         return 3
     io.open(CTX, "w", encoding="utf-8", newline="\n").write(text)
     io.open(STAMP, "w", encoding="utf-8", newline="\n").write(fingerprint())
-    log("[ok] AI_CONTEXT.md 已更新：测试 %d 项全绿、块 %d 个、文件 %d 个、时间戳 %s"
-        % (passed, len(stats), len(file_rows(text.count("\n") + 1, len(text.encode("utf-8")))), ctx["ts"]))
+    log("[ok] AI_CONTEXT.md 已更新：测试 %d 项%s、块 %d 个、文件 %d 个、时间戳 %s"
+        % (passed, "全绿" if not scaled else "全绿（性能预算已缩放，非开发机数据）",
+           len(stats), len(file_rows(text.count("\n") + 1, len(text.encode("utf-8")))), ctx["ts"]))
     return 0
 
 

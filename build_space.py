@@ -99,7 +99,11 @@ left = re.findall(r'/\*__[A-Z_]+__\*/', t)
 if left:
     sys.exit('模板里还有没替换的占位符：' + str(left))
 
-io.open(OUT, 'w', encoding='utf-8').write(t)
+# newline='\n' 是必须的：不写这一条，Python 会把 \n 翻成 os.linesep，
+# 于是同一个仓库在 Windows 上构建出 CRLF、在 Linux 上构建出 LF，
+# 产物字节不一致 —— AI_CONTEXT.md 记的产物体积会跟着机器变，
+# 换台机器 diff 一次就是整个文件 3977 行。产物换行符必须跟平台无关。
+io.open(OUT, 'w', encoding='utf-8', newline='\n').write(t)
 
 st = spec
 def n(k):

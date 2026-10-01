@@ -10,6 +10,8 @@
  * ========================================================================== */
 var path = require('path'), fs = require('fs');
 var Core = require(path.join(__dirname, '..', 'engine', 'space-core.js'));
+var PERF = require(path.join(__dirname, 'perf_budget.js'));
+if (PERF.banner()) console.log(PERF.banner());
 
 var pass = 0, fail = 0;
 function ok(name, cond, extra){
@@ -445,11 +447,11 @@ npcIds.forEach(function(id, k){
 var tw = Date.now();
 gW.step(1);
 var dw = Date.now() - tw;
-ok('30 个人同时重新寻路，单 tick < 50ms', dw < 50, dw + ' ms');
+ok('30 个人同时重新寻路，单 tick < 50ms' + PERF.note, dw < PERF.budget(50), dw + ' ms');
 var tw2 = Date.now();
 for (var wk = 0; wk < 60; wk++) gW.step(1);
 var dw2 = (Date.now() - tw2) / 60;
-ok('路径缓存之后每 tick < 3ms', dw2 < 3, dw2.toFixed(3) + ' ms');
+ok('路径缓存之后每 tick < 3ms' + PERF.note, dw2 < PERF.budget(3), dw2.toFixed(3) + ' ms');
 
 section('8c. NPC 寻路分摊到多帧（每 tick 有人数上限）');
 var budget = Core.num(Core.getPath(spec, 'config.npcRepathPerTick', 2), 2);
@@ -483,18 +485,18 @@ var g9 = Core.createGame(built, {});
 var t0 = Date.now();
 g9.step(20000);
 var dt9 = Date.now() - t0;
-ok('20000 tick 平均 < 1ms', dt9 / 20000 < 1, (dt9 / 20000).toFixed(4) + ' ms/tick');
+ok('20000 tick 平均 < 1ms' + PERF.note, dt9 / 20000 < PERF.budget(1), (dt9 / 20000).toFixed(4) + ' ms/tick');
 var sg = Core.createGame(built, {}), sgr = sg.grid('planet_wilderness');
 var pts = [];
 for (var pi = 0; pi < sgr.pass.length && pts.length < 2; pi++) if (sgr.pass[pi]) pts.push(pi);
 var t1 = Date.now();
 for (var ri = 0; ri < 200; ri++) sg.findPath('planet_wilderness', pts[0] % sgr.w, Math.floor(pts[0] / sgr.w), 60, 20);
 var dt1 = (Date.now() - t1) / 200;
-ok('单次 findPath < 1ms（放开 limit 之后）', dt1 < 1, dt1.toFixed(4) + ' ms');
+ok('单次 findPath < 1ms（放开 limit 之后）' + PERF.note, dt1 < PERF.budget(1), dt1.toFixed(4) + ' ms');
 var t2 = Date.now();
 for (var fj = 0; fj < 100; fj++) sg.render();
 var dt2 = (Date.now() - t2) / 100;
-ok('单帧合成 < 6ms', dt2 < 6, dt2.toFixed(4) + ' ms');
+ok('单帧合成 < 6ms' + PERF.note, dt2 < PERF.budget(6), dt2.toFixed(4) + ' ms');
 
 /* ---------------------------------------------------------------- */
 section('10. 地图视觉：墙体轮廓化 / 按类型换地板 / 货架与墙分家');

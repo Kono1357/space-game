@@ -4,6 +4,8 @@
  * ========================================================================== */
 var path = require('path'), fs = require('fs');
 var Core = require(path.join(__dirname, '..', 'engine', 'space-core.js'));
+var PERF = require(path.join(__dirname, 'perf_budget.js'));
+if (PERF.banner()) console.log(PERF.banner());
 
 var pass = 0, fail = 0, notes = [];
 function ok(name, cond, extra){
@@ -239,12 +241,12 @@ var t1 = Date.now();
 g2.step(20000);
 var dt = Date.now() - t1;
 ok('20000 tick 完成', g2.world.tick > 20000);
-ok('单 tick 平均 < 1ms', dt / 20000 < 1, (dt / 20000).toFixed(4) + ' ms/tick, ' + dt + 'ms total');
+ok('单 tick 平均 < 1ms' + PERF.note, dt / 20000 < PERF.budget(1), (dt / 20000).toFixed(4) + ' ms/tick, ' + dt + 'ms total');
 for (var w0 = 0; w0 < 20; w0++) g2.render();     /* 预热 */
 var t2 = Date.now();
 for (var r = 0; r < 200; r++) g2.render();
 var dt2 = Date.now() - t2;
-ok('单帧合成 < 6ms（' + g2.screen.n + ' 格）', dt2 / 200 < 6, (dt2 / 200).toFixed(4) + ' ms/frame');
+ok('单帧合成 < 6ms（' + g2.screen.n + ' 格）' + PERF.note, dt2 / 200 < PERF.budget(6), (dt2 / 200).toFixed(4) + ' ms/frame');
 
 section('12. mod 合并（开放性）');
 var mod = { manifest: { id: 'test_mod', name: '测试 mod', version: '1' }, data: {

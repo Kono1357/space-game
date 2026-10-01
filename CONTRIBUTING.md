@@ -51,6 +51,13 @@ python tools/update_context.py
   - 想强制重算：`python tools/update_context.py --force`。
   指纹只是省时间，不影响「测试红不写文档」的判定：真要写文档时，回归必须全绿。
 - node 不在 PATH 时：设 `SPACE_NODE=<node 路径>`；脚本也会自动去 `~/.dsh/dsh-runtimes/*/dependencies/node/bin/node.exe` 这类 bundled 位置找。
+- **性能预算的环境系数**（`tests/perf_budget.js`）：第 3 步里有 7 条断言量的是毫秒数，而毫秒数取决于机器。在比开发机慢的机器上（手机 / 容器）它们会因为机器慢而红，但代码并没有回归 —— 于是第 5 步会以「测试未全绿」拒绝写文档，整条链卡死。
+  为了不让机器速度冒充代码回归，这几条预算可以按机器缩放：
+  - `SPACE_PERF_SLACK=1.5 node tests/run_all.js`，或在仓库根目录写一个 `.perf_slack` 文件（内容就是一个数字，已 gitignore）；
+  - **默认 1.0**：不设的话快机器上逐字节和以前完全一样，一个字都没放宽；
+  - 缩放生效时，`run_all.js` 会打印一行 `⚠`，断言标题会带 `[预算×1.5]`，`update_context.py` 也会额外警告 —— **缩放的绿灯永远看得出来，不许冒充真绿灯**；
+  - 缩放只影响这 7 条毫秒断言，通过数、块数、其它断言都不受影响，所以写进 `AI_CONTEXT.md` 的数字仍然是准的；
+  - 定系数前先看实际超标幅度：本机实测超 1%~4%，所以 1.5 够用又不足以掩盖真实回归（真退化 50% 照样红）。
 - 只想快速迭代、暂时不同步文档：`python build_space.py --no-context`（或 `SPACE_NO_CONTEXT=1`）。**提交前必须补跑第 5 步。**
 - 只检查文档是否过时、不改文件：`python tools/update_context.py --check`（0=最新，3=会变）。
 

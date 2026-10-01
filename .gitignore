@@ -3,6 +3,10 @@ __pycache__/
 *.pyc
 .ctx_stamp
 
+# 本机的性能预算系数（见 tests/perf_budget.js）。
+# 慢机器上写一个数字进去，快机器上不需要这个文件。
+.perf_slack
+
 # 编辑器 / 系统
 .DS_Store
 Thumbs.db
