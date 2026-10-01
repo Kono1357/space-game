@@ -2273,7 +2273,7 @@
   "fogChar": " ",
   "defaultFloor": ".",
   "defaultLegend": {
-   "_howToAdd": "全局标准字符表。每个场景的 legend 会盖在上面，所以这里是「没写就用这个」。地图里的标准字符一旦漏写就会被当成墙（整张图变实心）。字符只管形状：实心结构统一用 #（引擎会按四邻把成行的墙轮廓化成 - | +，孤立的 # 留给货架一类的家具），可走的底面用 .（各场景类型可在 config.floorByType 里换成 , ; : ' 作出区域感）。",
+   "_howToAdd": "全局标准字符表。每个场景的 legend 会**深度合并**在上面（引擎 effectiveLegend = deepMerge(这张表, 场景 legend)），所以这里是「没写就用这个」。地图里的标准字符一旦漏写就会被当成墙（整张图会变实心）。字符只管形状：实心结构统一用 #（引擎会按四邻把成行的墙轮廓化成 - | +，孤立的 # 留给货架一类的家具），可走的底面用 .（各场景类型可在 config.floorByType 里换成 , ; : ' 作出区域感）。^ 岩石 / h 座椅 / [ 货架。【加字符要当心】depth-merge 是双向的：往这张表里加一个**某个场景已经在自己 legend 里用过**的字符，会和那个场景的条目合并 —— 预设里的 solid:true 会盖过场景写的 passable:true，把能走的格变成墙。（踩过：把 ~ 和 % 加进来当\"液面/植被\"，结果中央大厅里那几个「通向 船坞」的通道全成了墙。现在随机地形的群系字符由**生成器写进场景自己的 legend**，不占全局表。）",
    "#": {
     "preset": "wall"
    },
@@ -2463,6 +2463,22 @@
    "passable": false,
    "solid": true,
    "name": "岩石"
+  },
+  "liquid": {
+   "ch": "~",
+   "fg": "floor_rift_fg",
+   "bg": "fog_bg",
+   "passable": false,
+   "solid": true,
+   "name": "液面"
+  },
+  "flora": {
+   "ch": "%",
+   "fg": "good",
+   "bg": "floor_bg",
+   "passable": false,
+   "solid": true,
+   "name": "植被"
   }
  },
  "initialState": {

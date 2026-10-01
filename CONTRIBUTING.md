@@ -32,7 +32,7 @@ python tools/update_context.py
 |---|---|---|---|
 | 1 | `node --check engine/space-core.js` | 三个引擎文件的语法 | 改到不红；这是最快的一道闸 |
 | 2 | `python build_space.py` | 把内容 + 引擎编成自包含 `space-text.html`（末尾会自动同步 `AI_CONTEXT.md`） | 看报错：内容 JSON 坏了 / 模板占位符没替换 / 校验器报了错误 |
-| 3 | `node tests/run_all.js` | 10 个测试文件、全部回归 | 对着红的那条改；不许「先提交再修」 |
+| 3 | `node tests/run_all.js` | 11 个测试文件、全部回归 | 对着红的那条改；不许「先提交再修」 |
 | 4 | `python tools/validate_space.py` | 纯 Python 的内容层校验（图例覆盖 / 引用 / 坐标 / 缺 id + 地图规则 R1~R13） | 补内容或补登记，别改校验器绕过 |
 | 4b | `python tools/map_rules.py` | 地图规则（门宽 >= 3 / 边框 / 四角 / 单连通 / 开敞率 / **R13 回程安全**） | 改地图让它合规，别放宽规则 |
 | 4c | `python tools/gen_maps.py --selftest 10` | 随机地图生成器自检（每种原型多种子，生成结果必须过规则） | 改生成器，别改断言 |
@@ -155,6 +155,7 @@ python tools/update_context.py
 | 想加 | 看哪儿 | 写几行 |
 |---|---|---|
 | **先看我这个 mod 合不合规** | `python tools/validate_space.py --mods-dir mods`（或 `--mods 某mod.json`）：把 mod 合并进基础内容再校验。**别直接把 mod 文件当成内容传给校验器** —— 那样只会得到「场景 0 / 错误 0」的假通过 | 一条命令 |
+| **加一个新地貌 / 群系** | `tools/gen_maps.py` 的 `BIOMES`（图案 + `ratio` 结构尺度 + `open` 目标开敞率 + `solid` 材质），再用 `BIOME_OF` 把行星类型指过去；跑 `python tools/gen_maps.py --selftest 10` 和 `python tools/gen_world.py --selftest`。**开敞率要留余量**：封岛还会吃掉 8~15 个百分点，R7 要 >= 55% | 一个字典条目 |
 | **加一套新语言**（地名 / 人名） | `content/space.json` 的 `nameCultures`（`_howToAdd` + `_example`）；写完跑 `python tools/gen_world.py --seed 测试 --sites 8` 看效果。**id 跟所有块共用一个命名空间**（引擎查跨块重复），别用 `abyss` 这种派系 id | 一个 JSON 块 |
 | 一个新房间 / 人 / 对话 / 终端 | `tools/starter_mod.json`（能跑的起手 mod）；`python tools/scaffold_mod.py 我的房间 --id my_room` 生成骨架 | 一个 JSON 块 |
 | 一整个新世界（多站点 / 多地图） | `python tools/gen_world.py --seed 我的世界 --sites 24`（产物是标准 mod） | 一条命令 |

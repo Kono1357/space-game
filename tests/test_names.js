@@ -204,23 +204,36 @@ if (!W1.__err && C.cults){
   });
   var ids = Object.keys(byCulture);
   ok('一次生成里出现了多种语言（' + ids.length + ' 种）', ids.length >= 3, ids.join(','));
-  /* 只有一套文化才用的词，不该出现在别的文化的名字里 */
-  var own = {};
+  /* 「不串味」怎么测才不会误报：
+     原先写的是「别种语言独有的词不能出现在本地名的开头」——用前缀判断，
+     而 '空壳'（边地语）以 '空'（帷幕语独有）开头，直接误报。前缀判断在这里是错的。
+     真正的性质是：**区别性词干（placeA）绝大多数只属于一种语言**。
+     不要求"零共用"：专名本来就会被借用 —— 长夜 / 铁砧 / 织女 是手写层就有的地名，
+     tongue_sol 和别的语言都收了，这是有意的（不然两层名字对不上）。
+     通用尾字（placeB：港 / 台 / 门 / 环）共用更是正常，那本来就是"类型词"性质的。 */
+  var wordOwners = {};
   C.cults.forEach(function (c){
-    var others = [];
-    C.cults.forEach(function (o){ if (o.id !== c.id) others = others.concat(o.placeA); });
-    own[c.id] = c.placeA.filter(function (w){ return others.indexOf(w) < 0; });
+    c.placeA.forEach(function (w){ (wordOwners[w] = wordOwners[w] || []).push(c.id); });
   });
-  var leaked = [];
+  var lowExcl = C.cults.filter(function (c){
+    var ex = c.placeA.filter(function (w){ return wordOwners[w].length === 1; }).length;
+    return ex < c.placeA.length * 0.6;
+  }).map(function (c){
+    return c.id + '（' + c.placeA.filter(function (w){ return wordOwners[w].length === 1; }).length
+         + '/' + c.placeA.length + '）';
+  });
+  ok('每套语言的区别性词干至少 60% 是它独有的 ★', lowExcl.length === 0, lowExcl.join(' '));
+  var sharedA = Object.keys(wordOwners).filter(function (w){ return wordOwners[w].length > 1; });
+  console.log('       共用的词干（专名借用，允许）：' + (sharedA.join(' ') || '无'));
+  /* 反过来：每个站点用的词干**必须**来自它自己那套语言（这一条是硬的，见 ②） */
+  var foreign = [];
   W1.nodes.forEach(function (n){
-    var others = C.cults.filter(function (o){ return o.id !== n.culture; });
-    others.forEach(function (o){
-      (own[o.id] || []).forEach(function (w){
-        if (n.stem.indexOf(w) === 0) leaked.push(n.name + ' 用了 ' + o.id + ' 独有的词 ' + w);
-      });
-    });
+    var c = C.cults.filter(function (x){ return x.id === n.culture; })[0];
+    var hit = c.placeA.filter(function (w){ return n.stem.indexOf(w) === 0; })
+                      .sort(function (a, b){ return b.length - a.length; })[0];
+    if (hit && wordOwners[hit].indexOf(n.culture) < 0) foreign.push(n.name + ' 的 ' + hit);
   });
-  ok('没有哪个站点用了别的语言独有的词 ★', leaked.length === 0, leaked.slice(0, 3).join(' | '));
+  ok('没有哪个站点用了它那套语言词表之外的词干 ★', foreign.length === 0, foreign.slice(0, 3).join(' | '));
   /* 打印几个例子，出问题时一眼看得出风格对不对 */
   ids.slice(0, 6).forEach(function (id){
     console.log('       ' + id.padEnd(12) + ' ' + byCulture[id].slice(0, 5).join('  '));

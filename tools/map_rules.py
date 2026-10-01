@@ -126,14 +126,43 @@ def eff_tiles(scene, space):
     return rows
 
 
+def _deep_merge(base, patch):
+    """引擎的 deepMerge（mergeArrays 在引擎里从没打开过）。这里只需要它来复刻有效图例。"""
+    if not isinstance(base, dict) or not isinstance(patch, dict):
+        return json.loads(json.dumps(base if patch is None else patch))
+    out = json.loads(json.dumps(base))
+    for k, pv in patch.items():
+        bv = out.get(k)
+        out[k] = _deep_merge(bv, pv) if (isinstance(pv, dict) and isinstance(bv, dict)) else json.loads(json.dumps(pv))
+    return out
+
+
+def effective_legend(space, scene):
+    """逐字对齐引擎的 effectiveLegend：**深度合并** defaultLegend 与 scene.legend。
+
+    以前这里是「场景 legend 里有就用场景的，否则用全局的」—— 二选一。
+    引擎是深合并，两者在同一个字符上都有条目时会**合起来**：
+    全局条目带的 preset 会把 solid:true 注进去，盖过场景自己写的 passable:true。
+    实测：中央大厅把 % 和 ~ 定义成「通向 X」的通道（passable:true），
+    一旦全局表里也有 % / ~，引擎那边这两个字符就变成走不过去的墙，而规则这边还是可走 ——
+    两边对同一格给出相反结论，校验器的结论就不作数了。
+    """
+    default = (space.get('config') or {}).get('defaultLegend')
+    own = scene.get('legend') if isinstance(scene.get('legend'), dict) else {}
+    if not isinstance(default, dict): return json.loads(json.dumps(own))
+    return _deep_merge(default, own)
+
+
 def make_resolver(space):
-    default = space.get('config', {}).get('defaultLegend', {})
     presets = space.get('presets', {})
     inter = {i['id']: i for i in space.get('interactables', {}).get('list', [])}
+    cache = {}                      # 有效图例要按场景算一次就够：每格重算深合并会把校验拖到分钟级
     def passable(scene, ch):
-        lg = scene.get('legend') or {}
-        e = lg[ch] if ch in lg else default.get(ch)
-        return entry_passable(e, presets, inter)
+        key = id(scene)
+        lg = cache.get(key)
+        if lg is None:
+            lg = effective_legend(space, scene); cache[key] = lg
+        return entry_passable(lg.get(ch), presets, inter)
     return passable
 
 def grid_of(space, scene, passable):

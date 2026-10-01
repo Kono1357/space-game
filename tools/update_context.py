@@ -272,7 +272,8 @@ def main():
     }
     # 各文件项数那一行
     order = ["test_space.js", "test_world.js", "test_arch.js", "test_text.js", "test_shell.js", "test_build.js",
-             "test_merge_parity.js", "test_maprules_parity.js", "test_validate.js", "test_names.js"]
+             "test_merge_parity.js", "test_maprules_parity.js", "test_validate.js", "test_names.js",
+             "test_terrain.js"]
     parts = []
     for name in order:
         if name in per:

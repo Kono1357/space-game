@@ -42,6 +42,229 @@ def carve(grid, x0, y0, x1, y1, ch='.'):
             grid[y][x] = ch
 
 
+# ============================== 地形噪声 + 群系（第 3 期）==============================
+# 以前地表是「先整片挖成地板、再随机撒几团石头」，裂隙是「0.63 均匀随机 + 三次元胞平滑」——
+# 两种都**没有大尺度结构**：整张图哪儿都一样，也没有"山脊 / 河谷 / 林间空地"这种东西。
+# 现在改用值噪声 + 分形叠加做出连贯场，再由**群系**决定「图案 + 密度 + 障碍物材质」。
+def _h2(x, y, seed):
+    """整数哈希 -> [0,1)。纯整数运算：不依赖 random 的状态，跨平台跨版本同结果。"""
+    n = (x * 374761393 + y * 668265263 + seed * 1013904223) & 0xFFFFFFFF
+    n = (n ^ (n >> 13)) & 0xFFFFFFFF
+    n = (n * 1274126177) & 0xFFFFFFFF
+    return ((n ^ (n >> 16)) & 0xFFFFFF) / 16777216.0
+
+
+def _smooth(t):
+    return t * t * (3.0 - 2.0 * t)
+
+
+def value_noise(W, H, seed, freq):
+    """格点随机 + 平滑插值。freq 越大结构越细。"""
+    freq = max(2.0, float(freq))
+    gw = int(W / freq) + 3
+    gh = int(H / freq) + 3
+    lat = [[_h2(gx, gy, seed) for gx in range(gw)] for gy in range(gh)]
+    out = []
+    for y in range(H):
+        fy = y / freq; gy = int(fy); ty = _smooth(fy - gy)
+        r0, r1 = lat[gy], lat[gy + 1]
+        row = []
+        for x in range(W):
+            fx = x / freq; gx = int(fx); tx = _smooth(fx - gx)
+            a = r0[gx] + (r0[gx + 1] - r0[gx]) * tx
+            b = r1[gx] + (r1[gx + 1] - r1[gx]) * tx
+            row.append(a + (b - a) * ty)
+        out.append(row)
+    return out
+
+
+def fbm(W, H, seed, octaves=4, freq=18.0, gain=0.5):
+    """分形叠加：低频决定「大区块在哪」，高频补细节。"""
+    field = [[0.0] * W for _ in range(H)]
+    amp, total, f = 1.0, 0.0, float(freq)
+    for o in range(max(1, int(octaves))):
+        layer = value_noise(W, H, seed + o * 7919, f)
+        for y in range(H):
+            row, lrow = field[y], layer[y]
+            for x in range(W): row[x] += lrow[x] * amp
+        total += amp; amp *= gain; f = max(2.0, f * 0.5)
+    for y in range(H):
+        row = field[y]
+        for x in range(W): row[x] /= total
+    return field
+
+
+# 群系 = 地形**图案** + 结构尺度 + 目标开敞率 + 障碍物字符。
+#   blobs    成团的山脊 / 树丛（大块连贯）
+#   cracks   长条状的沟 / 裂（离中值最近的那些格子）
+#   plateaus 量化成台地，边缘整齐（沙丘孤峰）
+#   ruins    正交残墙 + 碎块（废墟）
+#   open     目标开敞率 —— 密度由它定，但**一定要过 R7（>= 55%）**，所以都留了余量
+BIOMES = {
+ 'ridge':   {'name': '岩脊',   'pattern': 'blobs',    'ratio': 0.26, 'octaves': 5, 'open': 0.82, 'solid': '^'},
+ 'dunes':   {'name': '沙丘',   'pattern': 'plateaus', 'ratio': 0.34, 'octaves': 4, 'open': 0.82, 'solid': '^'},
+ 'lava':    {'name': '熔岩沟', 'pattern': 'cracks',   'ratio': 0.20, 'octaves': 4, 'open': 0.84, 'solid': '~'},
+ 'fissure': {'name': '冰裂',   'pattern': 'cracks',   'ratio': 0.30, 'octaves': 5, 'open': 0.84, 'solid': '^'},
+ 'grove':   {'name': '林间',   'pattern': 'blobs',    'ratio': 0.14, 'octaves': 5, 'open': 0.80, 'solid': '%'},
+ 'marsh':   {'name': '沼面',   'pattern': 'blobs',    'ratio': 0.18, 'octaves': 4, 'open': 0.86, 'solid': '~'},
+ 'ruins':   {'name': '废墟',   'pattern': 'ruins',    'ratio': 0.22, 'octaves': 3, 'open': 0.82, 'solid': '^'},
+ 'cave':    {'name': '洞窟',   'pattern': 'blobs',    'ratio': 0.24, 'octaves': 5, 'open': 0.78, 'solid': '^'},
+}
+# 行星类型 -> 群系（planetTypes 那 18 种都要落在某个群系里；认不出来就走 DEFAULT_BIOME）
+BIOME_OF = {
+ 'rock': 'ridge', 'barren': 'ridge', 'ferrous': 'ridge', 'crystal_world': 'ridge',
+ 'desert': 'dunes', 'dune': 'dunes',
+ 'volcanic': 'lava', 'magma_ocean': 'lava',
+ 'ice': 'fissure', 'tundra': 'fissure', 'aerial': 'fissure',
+ 'jungle': 'grove', 'fen': 'grove',
+ 'ocean': 'marsh', 'toxic': 'marsh', 'gas': 'marsh', 'anomalous': 'marsh',
+ 'shattered': 'ruins',
+}
+DEFAULT_BIOME = 'ridge'
+UNDER_LAVA = ('volcanic', 'magma_ocean')
+
+
+def biome_of(planet_type):
+    return BIOME_OF.get(planet_type or '', DEFAULT_BIOME)
+
+
+def under_biome(planet_type):
+    """地下层的地貌跟着行星走：火山行星的地下是熔岩沟，别的走洞窟。"""
+    return 'lava' if (planet_type in UNDER_LAVA) else 'cave'
+
+
+def paint_terrain(grid, field, biome):
+    """把一个噪声场画进网格（只动内部，边框留给门）。
+
+    密度用**排名**解，不用阈值猜：要 1-open 比例的实心格，就取"最像实心"的那 1-open，
+    所以开敞率是准的（封岛之前），R7 不会被群系参数顶穿。
+    """
+    H, W = len(grid), len(grid[0])
+    ih, iw = H - 2, W - 2
+    if ih <= 0 or iw <= 0: return
+    inner = [[field[y + 1][x + 1] for x in range(iw)] for y in range(ih)]
+    pat, solid = biome['pattern'], biome['solid']
+    n = ih * iw
+    k = max(0, min(n, int(n * (1.0 - biome['open']))))
+
+    if pat == 'cracks':
+        # 离中值最近的 k 格 = 长条状的沟壑（贴着一圈等值线走）
+        order = sorted(range(n), key=lambda i: abs(inner[i // iw][i % iw] - 0.5))
+    elif pat == 'plateaus':
+        flat = [int(inner[i // iw][i % iw] * 5) for i in range(n)]
+        order = sorted(range(n), key=lambda i: (-flat[i], inner[i // iw][i % iw]))
+    else:
+        order = sorted(range(n), key=lambda i: -inner[i // iw][i % iw])
+
+    if pat == 'ruins':
+        # 废墟：正交残墙**优先占坑**，剩下的名额再按场值补碎块。
+        # 关键：墙上必须按节奏开口子 —— 完整的网格会把地图切成密封小间，
+        # largest_region_only 只留下一间，开敞率会掉到 5%（实测过）。
+        # 1 格宽的口子只要有一个，墙两侧就通了。
+        lat = [i for i in range(n)
+               if (((i % iw) % 9) < 1 or ((i // iw) % 11) < 1)
+               and ((i % iw) * 3 + (i // iw) * 5) % 8 != 0
+               and inner[i // iw][i % iw] > 0.26]
+        lat.sort(key=lambda i: -inner[i // iw][i % iw])
+        hit = set(lat[:k])
+        for i in order:
+            if len(hit) >= k: break
+            hit.add(i)
+    else:
+        hit = set(order[:k])
+
+    for i in hit:
+        grid[i // iw + 1][i % iw + 1] = solid
+    return biome
+
+
+SOLID_CHARS = ('#', '^', '~', '%')
+# 群系障碍物字符 -> 预设名（写进场景 legend，见 gen_scene）
+BIOME_PRESET = {'^': 'rock', '~': 'liquid', '%': 'flora'}
+
+
+def _cut_channel(grid, x, y, ch='.'):
+    """从 (x,y) 往左右找最近的已可走格，把中间打通。
+
+    为什么不直接 `grid[y][x] = '.'`：单点挖开会造出**孤立的**可走格，
+    随后 largest_region_only 又把它封回实心（实测：大山块原封不动回来了）。
+    打一条连得上的通道才是真的把它劈开，而且不会破坏 R3 单连通。"""
+    H, W = len(grid), len(grid[0])
+    for d in range(1, W):
+        for nx in (x - d, x + d):
+            if 1 <= nx < W - 1 and grid[y][nx] == ch:
+                lo, hi = (nx, x) if nx < x else (x, nx)
+                for xx in range(lo, hi + 1): grid[y][xx] = ch
+                return True
+    for d in range(1, H):
+        for ny in (y - d, y + d):
+            if 1 <= ny < H - 1 and grid[ny][x] == ch:
+                lo, hi = (ny, y) if ny < y else (y, ny)
+                for yy in range(lo, hi + 1): grid[yy][x] = ch
+                return True
+    return False
+
+
+def break_big_masses(grid, limit=8, ch='.'):
+    """把超过 limit x limit 的实心块打穿。
+
+    R6（软规则）说野外地貌的实心正方块别超过 8。这条规则本来是防「屋子中间糊一整块墙」，
+    而噪声地形天然会造出大山块 —— 实测 gw1 有 6 张图报 R6（9x9 / 11x11）。
+    VISION 第 7 节明说**不为生成器放宽地图硬规则**，所以不让规则让步，让生成器守规矩。
+    在 largest_region_only **之后**跑，每条缝都连到已有可走区，所以不会破 R3。
+    """
+    H, W = len(grid), len(grid[0])
+    for _ in range(8):
+        dp = [[0] * W for _ in range(H)]
+        worst = 0
+        for y in range(H - 1, -1, -1):
+            gy = grid[y]; dy = dp[y]
+            for x in range(W - 1, -1, -1):
+                if gy[x] not in SOLID_CHARS: continue
+                r = 1
+                if x + 1 < W and y + 1 < H:
+                    r = 1 + min(dp[y + 1][x], dy[x + 1], dp[y + 1][x + 1])
+                dy[x] = r
+                if r > worst: worst = r
+        if worst <= limit: return True
+        targets = [(x, y) for y in range(1, H - 1) for x in range(1, W - 1) if dp[y][x] > limit]
+        if not targets:
+            # 大块是**贴着边框**的：边框不能动（R1），而贴边的那种大块，
+            # 内部格子的 dp 最多只到 limit（剩下那几行/列都在边框上）。
+            # 退一档切 dp >= limit 的内部格，把它从边上拆下来。
+            targets = [(x, y) for y in range(1, H - 1) for x in range(1, W - 1) if dp[y][x] >= limit]
+        if not targets: return False
+        for (x, y) in targets:
+            _cut_channel(grid, x, y, ch)
+    return False
+
+
+def gen_surface(grid, rnd, kind, biome=None):
+    """地表：噪声出连贯地形，群系决定形状与材质。"""
+    b = BIOMES[biome] if isinstance(biome, str) else (biome or BIOMES[DEFAULT_BIOME])
+    H, W = len(grid), len(grid[0])
+    carve(grid, 1, 1, W - 2, H - 2)
+    seed = rnd.randint(1, 1 << 30)
+    field = fbm(W, H, seed, b['octaves'], max(5.0, min(W, H) * b['ratio']))
+    paint_terrain(grid, field, b)
+    largest_region_only(grid, (W // 2, H // 2))
+    break_big_masses(grid, 8)          # 必须在封岛之后：通道要连到已有可走区
+    return b
+
+
+def gen_rift(grid, rnd, kind, biome=None):
+    """地下 / 裂隙：同样是连贯场，但结构更粗（洞窟成群，不是均匀麻点）。"""
+    b = BIOMES[biome] if isinstance(biome, str) else (biome or BIOMES['cave'])
+    H, W = len(grid), len(grid[0])
+    carve(grid, 1, 1, W - 2, H - 2)          # 先挖成可走，再让噪声把实心格盖回去
+    seed = rnd.randint(1, 1 << 30)
+    field = fbm(W, H, seed, b['octaves'], max(5.0, min(W, H) * b['ratio']))
+    paint_terrain(grid, field, b)
+    largest_region_only(grid, (W // 2, H // 2))
+    break_big_masses(grid, 8)          # 必须在封岛之后：通道要连到已有可走区
+    return b
+
+
 def largest_region_only(grid, seed):
     """只保留从 seed 能走到的那一块可走区，其余可走格封成墙（保证 R3）。"""
     H, W = len(grid), len(grid[0])
@@ -151,17 +374,6 @@ def gen_colony(grid, rnd, kind):
                 for x in range(px, min(x1 - 1, px + 2)): grid[y][x] = '#'
 
 
-def gen_surface(grid, rnd, kind):
-    H, W = len(grid), len(grid[0])
-    carve(grid, 1, 1, W - 2, H - 2)
-    for _ in range(rnd.randint(6, 12)):
-        x = rnd.randint(3, W - 4); y = rnd.randint(3, H - 4)
-        for _ in range(rnd.randint(20, 60)):
-            if 1 <= x < W - 1 and 1 <= y < H - 1: grid[y][x] = '^'
-            x += rnd.choice((-1, 0, 1)); y += rnd.choice((-1, 0, 1))
-    largest_region_only(grid, (W // 2, H // 2))
-
-
 def gen_ship(grid, rnd, kind):
     H, W = len(grid), len(grid[0])
     mid = H // 2
@@ -175,41 +387,40 @@ def gen_ship(grid, rnd, kind):
     largest_region_only(grid, (W // 2, mid))
 
 
-def gen_rift(grid, rnd, kind):
-    H, W = len(grid), len(grid[0])
-    for y in range(1, H - 1):
-        for x in range(1, W - 1): grid[y][x] = '.' if rnd.random() < 0.63 else '#'
-    for _ in range(3):
-        ng = [row[:] for row in grid]
-        for y in range(1, H - 1):
-            for x in range(1, W - 1):
-                n = 0
-                for dy in (-1, 0, 1):
-                    for dx in (-1, 0, 1):
-                        if dx == 0 and dy == 0: continue
-                        if grid[y + dy][x + dx] == '#': n += 1
-                ng[y][x] = '#' if n >= 5 else '.'
-        for yy in range(H): grid[yy][:] = ng[yy]          # 原地改，别把调用方的 list 换掉
-    largest_region_only(grid, (W // 2, H // 2))
-
-
 GEN = {'station': gen_station, 'colony': gen_colony, 'surface': gen_surface, 'ship': gen_ship, 'rift': gen_rift, 'under': gen_rift}
 
 
-def gen_scene(kind, seed, sid=None, doors=None):
+def gen_scene(kind, seed, sid=None, doors=None, biome=None, planet_type=None):
+    """生成一张图。biome 只对 surface / rift / under 有意义（别的原型是室内结构，不谈地貌）。
+    planet_type 会写进场景（跟手写内容一个口径），地貌名会缀在 ambient 后面 —— 走进去按 X 看得到。"""
+    noisy = kind in ('surface', 'rift', 'under')
+    b = None
+    if noisy:
+        if isinstance(biome, str): b = BIOMES.get(biome) or BIOMES[DEFAULT_BIOME]
+        elif isinstance(biome, dict): b = biome
+        elif kind == 'surface': b = BIOMES[biome_of(planet_type)]
+        else: b = BIOMES[under_biome(planet_type)]
     for attempt in range(60):
         rnd = random.Random('%s|%s|%d' % (kind, seed, attempt))
         W, H = rnd.choice(KINDS[kind]['sizes'])
         grid = blank(W, H)
-        GEN[kind](grid, rnd, kind)
+        if noisy: GEN[kind](grid, rnd, kind, b)
+        else:     GEN[kind](grid, rnd, kind)
         n_doors = doors if doors else rnd.randint(2, 4)
         door_cells = carve_doors(grid, rnd, n_doors)
         if not door_cells: continue
         tiles = [''.join(r) for r in grid]
+        ambient = KINDS[kind]['ambient'] + (('地貌：' + b['name'] + '。') if b else '')
+        # 群系用的障碍物字符写进**场景自己的 legend**，不占全局 defaultLegend：
+        # 全局表是深度合并进每个场景的，往里加一个别的场景已经用过的字符会把那个场景的意思改掉
+        # （踩过：% 和 ~ 在中央大厅里是「通向 X」的通道，加进全局表后全变成墙）。
+        legend = {}
+        if b: legend[b['solid']] = {'preset': BIOME_PRESET[b['solid']]}
         scene = {'id': sid or ('gen_%s_%s' % (kind, seed)), 'name': KINDS[kind]['name'],
                  'type': KINDS[kind]['type'], 'size': {'w': W, 'h': H}, 'tiles': tiles,
-                 'legend': {}, 'exits': [{'x': x, 'y': y, 'to': '', 'at': {'x': 0, 'y': 0}} for (x, y) in door_cells],
-                 'ambient': KINDS[kind]['ambient']}
+                 'legend': legend, 'exits': [{'x': x, 'y': y, 'to': '', 'at': {'x': 0, 'y': 0}} for (x, y) in door_cells],
+                 'ambient': ambient}
+        if b and planet_type: scene['planetType'] = planet_type
         errs, _ = MR.check_scene(SPACE, scene, PASSABLE, None)
         if not errs: return scene
     raise RuntimeError('生成失败：%s seed=%s' % (kind, seed))

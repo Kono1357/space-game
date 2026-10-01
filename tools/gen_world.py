@@ -578,7 +578,7 @@ def hub_cell(scene_id='station_command'):
     return 1, 1
 
 
-def build_site(rnd, s, i, sites, kind=None, cult=None):
+def build_site(rnd, s, i, sites, kind=None, cult=None, planet_type=None):
     t = i / max(1, sites - 1)
     if kind is None: kind = pick_kind(rnd, i, sites)
     if cult is None: cult = FALLBACK_CULTURE
@@ -589,11 +589,13 @@ def build_site(rnd, s, i, sites, kind=None, cult=None):
         site_scenes = []
         for j in range(nsc):
             sc_id = 'gw_%s_s%02d_%s' % (s, i + 1, 'abcdef'[j])
-            sc = GM.gen_scene(kind, '%s|%d|%d|%d' % (s, i, j, attempt), sc_id, 2)
+            sc = GM.gen_scene(kind, '%s|%d|%d|%d' % (s, i, j, attempt), sc_id, 2,
+                              planet_type=planet_type)
             sc['name'] = name + SEP + PART_CN[j]
             sc['ambient'] = sc['ambient'] + '（' + name + '）'
             site_scenes.append(sc)
-        under = GM.gen_scene('under', '%s|%d|under|%d' % (s, i, attempt), u_id, 2)
+        under = GM.gen_scene('under', '%s|%d|under|%d' % (s, i, attempt), u_id, 2,
+                             planet_type=planet_type)
         under['name'] = name + SEP + '地下层'
         under['ambient'] = under['ambient'] + '（' + name + ' 地下）'
         site_scenes.append(under)
@@ -613,6 +615,7 @@ def build_site(rnd, s, i, sites, kind=None, cult=None):
 
 
 SITE_NAMES = set()
+PLANET_TYPES = []      # make_world 里填；地表/地下的群系按它选
 
 
 def generated_return_unsafe(doc):
@@ -639,6 +642,22 @@ def generated_return_unsafe(doc):
     return unsafe
 
 
+def load_planet_types(space=None):
+    """可用的行星类型 id（地表 / 地下的群系由它决定）。内容里没有就返回空表 -> 走默认群系。"""
+    space = space if space is not None else GM.SPACE
+    out = [p['id'] for p in ((space.get('planetTypes') or {}).get('list') or [])
+           if isinstance(p, dict) and p.get('id')]
+    return out or []
+
+
+def planet_name(pid, space=None):
+    space = space if space is not None else GM.SPACE
+    for p in ((space.get('planetTypes') or {}).get('list') or []):
+        if isinstance(p, dict) and p.get('id') == pid:
+            return p.get('name') or pid
+    return pid or ''
+
+
 def make_world(seed, sites):
     global SITE_NAMES
     # 起名用的「已占用」集合先把**手写层已有的地名**装进去 ——
@@ -648,6 +667,8 @@ def make_world(seed, sites):
     SITE_NAMES |= {(s.get('name') or '') for s in (GM.SPACE.get('scenes') or {}).get('list', [])}
     SITE_NAMES.discard('')
     by_owner, cults, fallback, cult_problems = load_cultures()
+    global PLANET_TYPES
+    PLANET_TYPES = load_planet_types()
     rnd = random.Random('world|%s|%d' % (seed, sites))
     s = sid_of(seed)
     scenes, transitions, shuttles, rooms, nodes = [], [], [], [], []
@@ -662,11 +683,13 @@ def make_world(seed, sites):
 
     for i in range(sites):
         t = i / max(1, sites - 1)
-        # 归属与种类都要在起名之前定：地名用的是**归属方**的语言。
+        # 归属、种类、行星类型都要在起名之前定：地名用的是归属方的语言，
+        # 地表/地下的地形则由行星类型决定群系（第 3 期）。
         kind = pick_kind(rnd, i, sites)
         owner = pick_owner(rnd, t, kind)
         cult = culture_for(by_owner, fallback, owner)
-        kind, name, site_scenes, trs, under_id = build_site(rnd, s, i, sites, kind, cult)
+        planet_type = rnd.choice(PLANET_TYPES) if PLANET_TYPES else None
+        kind, name, site_scenes, trs, under_id = build_site(rnd, s, i, sites, kind, cult, planet_type)
         scenes.extend(site_scenes); transitions.extend(trs)
         for sc in site_scenes:
             rooms.append({'id': sc['id'], 'name': sc['name'], 'scene': sc['id'], 'type': sc['type']})
