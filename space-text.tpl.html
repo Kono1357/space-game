@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>朔  纯文本模式</title>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #000000; color: #c8c8c8;
+    font-family: "Consolas", "Courier New", monospace; overflow: hidden; }
+  body { display: flex; flex-direction: column; }
+  /* 画面就是一个 <pre>；外层只负责居中，不参与尺寸计算。
+     字号由外壳按窗口算好之后写在这一行上（见 space-textout.js 的 applyFont） */
+  #stage { flex: 1 1 auto; min-height: 0; display: flex; justify-content: center; align-items: flex-start;
+    overflow: hidden; }
+  #screen { margin: 0; padding: 0; white-space: pre; overflow: hidden; cursor: crosshair;
+    font: bold 15px "Consolas", "Courier New", monospace; line-height: 1.15; color: #c8c8c8; }
+  #info { flex: 0 0 auto; white-space: pre-wrap; font: 13px "Consolas", "Courier New", monospace;
+    line-height: 1.5; color: #8a8aa0; padding: 4px 8px; }
+  #err { flex: 0 0 auto; white-space: pre-wrap; font: 13px "Consolas", monospace;
+    color: #ff8080; padding: 4px 8px; }
+  .hidden { display: none !important; }
+  /* F2 装 mod 的面板 */
+  #modpanel { position: fixed; inset: 4% 6%; z-index: 10; display: flex; flex-direction: column;
+    background: #14141c; border: 1px solid #4a4a66; padding: 10px 12px; gap: 8px;
+    font: 13px "Consolas", "Courier New", monospace; color: #dcdcea; }
+  #modpanel .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  #modpanel textarea { flex: 1 1 auto; min-height: 40vh; background: #0a0a12; color: #dcdcea;
+    border: 1px solid #33334a; padding: 8px; font: 13px "Consolas", "Courier New", monospace;
+    white-space: pre; resize: none; }
+  #modpanel button { background: #26263c; color: #e4e4f0; border: 1px solid #4a4a66;
+    padding: 4px 10px; font: 13px "Consolas", monospace; cursor: pointer; }
+  #modpanel button:hover { background: #33334a; }
+  #modpanel .ok { color: #6de08a; } #modpanel .bad { color: #ff6a6a; }
+  #modpanel .modlist { max-height: 22vh; overflow: auto; border: 1px solid #33334a; padding: 4px 8px; }
+  #modpanel .modrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 2px 0; }
+  #modpanel .modrow .dim { color: #8a8aa0; margin-left: 8px; }
+  #modpanel input[type=file] { color: #8a8aa0; }
+</style>
+</head>
+<body>
+<div id="stage"><pre id="screen"></pre></div>
+<div id="info"></div>
+<div id="err" class="hidden"></div>
+
+<div id="modpanel" class="hidden">
+  <div class="row"><b>装 mod（纯 JSON，应用即热加载，进度保留）</b><span id="modmsg" class="ok"></span></div>
+  <textarea id="modtext" spellcheck="false"></textarea>
+  <div class="row">
+    <button id="modapply">应用并重载</button>
+    <input type="file" id="modfile" accept=".json,application/json">
+    <button id="modtemplate">填入示例模板</button>
+    <button id="modexport">导出已装的 mod</button>
+    <button id="modclear">清空已装的 mod</button>
+    <button id="modclose">关闭（Esc）</button>
+  </div>
+  <div id="modlist" class="modlist"></div>
+  <div class="row"><span style="color:#8a8aa0">装过的存在浏览器里，下次打开还在；也可以把 mod 文件夹放进 mods/ 再跑 build_space.py。改房间/加东西不用重开热加载会保住世界状态。</span></div>
+</div>
+
+<script>/*__CORE__*/</script>
+<script>/*__SPEC__*/
+/*__MODS__*/</script>
+<script>/*__TEXTOUT__*/</script>
+<script>/*__SHELL__*/</script>
+</body>
+</html>

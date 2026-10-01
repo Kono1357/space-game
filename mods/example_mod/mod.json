@@ -1,0 +1,263 @@
+{
+ "id": "example_mod",
+ "name": "观景台（示例 mod）",
+ "version": "1.0.0",
+ "priority": 10,
+ "author": "框架自带",
+ "description": "演示如何在纯 JSON 下加场景、加人、加对话、加终端，并且用 _append 给已有场景开一扇门。",
+ "defaultOp": "append",
+ "_howToAdd": "复制这个文件夹，改 manifest.id，然后在 data 里加你自己的块。",
+ "data": {
+  "scenes": {
+   "list": [
+    {
+     "id": "mod_observatory",
+     "name": "观景台",
+     "type": "space_station",
+     "size": {
+      "w": 30,
+      "h": 12
+     },
+     "tiles": [
+      "██████████████████████████████",
+      "█............................█",
+      "█...........O.....O..........█",
+      "█......X.....................█",
+      "█............................█",
+      "█............................█",
+      "█............................+",
+      "█............................█",
+      "█............................█",
+      "█..◆.........................█",
+      "█............................█",
+      "██████████████████████████████"
+     ],
+     "legend": {
+      "█": {
+       "preset": "wall"
+      },
+      ".": {
+       "preset": "floor"
+      },
+      "+": {
+       "preset": "door"
+      },
+      "X": {
+       "interactable": "mod_telescope"
+      },
+      "◆": {
+       "interactable": "save_point"
+      },
+      "O": {
+       "interactable": "mod_window"
+      }
+     },
+     "exits": [
+      {
+       "x": 29,
+       "y": 6,
+       "to": "station_corridor",
+       "at": {
+        "x": 2,
+        "y": 6
+       },
+       "direction": "east"
+      }
+     ],
+     "ambient": "观景台没有灯。只有一层薄薄的黑，和外面真正的黑。",
+     "lit": true
+    },
+    {
+     "id": "station_corridor",
+     "_op": "patch",
+     "_append": {
+      "tileEdits": [
+       {
+        "x": 0,
+        "y": 6,
+        "preset": "door"
+       }
+      ],
+      "exits": [
+       {
+        "x": 0,
+        "y": 6,
+        "to": "mod_observatory",
+        "at": {
+         "x": 22,
+         "y": 5
+        },
+        "direction": "west"
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "interactables": {
+   "list": [
+    {
+     "id": "mod_telescope",
+     "name": "望远镜",
+     "symbol": "X",
+     "color": "npc2",
+     "bg": "panel2",
+     "passable": false,
+     "auto": false,
+     "priority": 15,
+     "onInteract": [
+      {
+       "type": "open_view",
+       "view": "mod_star_notes"
+      }
+     ],
+     "desc": "对着帷幕星云的方向。"
+    },
+    {
+     "id": "mod_window",
+     "name": "舷窗",
+     "symbol": "O",
+     "color": "npc2",
+     "bg": "panel2",
+     "passable": false,
+     "auto": false,
+     "priority": 6,
+     "onInteract": [
+      {
+       "type": "log",
+       "text": "外面是真正的黑。它不动，也不闪。"
+      }
+     ],
+     "desc": "对着帷幕星云方向的舷窗。"
+    }
+   ]
+  },
+  "npcs": {
+   "list": [
+    {
+     "id": "npc_astronomer",
+     "name": "观星者 柯",
+     "symbol": "A",
+     "color": "npc2",
+     "role": "astronomer",
+     "faction": "player_remnant",
+     "homeScene": "mod_observatory",
+     "dialogue": "dialogue_astronomer"
+    }
+   ]
+  },
+  "schedules": {
+   "list": [
+    {
+     "id": "sch_astronomer",
+     "npcId": "npc_astronomer",
+     "slots": [
+      {
+       "hours": [
+        0,
+        24
+       ],
+       "scene": "mod_observatory",
+       "x": 12,
+       "y": 5
+      }
+     ]
+    }
+   ]
+  },
+  "dialogues": {
+   "list": [
+    {
+     "id": "dialogue_astronomer",
+     "npcId": "npc_astronomer",
+     "entry": "root",
+     "nodes": {
+      "root": {
+       "text": "你来了。看，那条裂痕比昨天又长了一截。",
+       "options": [
+        {
+         "text": "你在这儿待了多久？",
+         "goto": "howlong"
+        },
+        {
+         "text": "看见什么了就告诉我。",
+         "effects": [
+          {
+           "type": "flag_set",
+           "flag": "mod_watcher"
+          }
+         ],
+         "goto": "report"
+        },
+        {
+         "text": "回去睡吧。",
+         "goto": "end"
+        }
+       ]
+      },
+      "howlong": {
+       "text": "多久？我数的是它变长的次数，不是日子。",
+       "options": [
+        {
+         "text": "",
+         "goto": "root"
+        }
+       ]
+      },
+      "report": {
+       "text": "星图上多了一个点。不发光，但把旁边的光都吃掉了。",
+       "options": [
+        {
+         "text": "记下来。",
+         "goto": "end"
+        }
+       ]
+      },
+      "end": {
+       "text": "我盯着呢。",
+       "action": "close_dialogue"
+      }
+     }
+    }
+   ]
+  },
+  "views": {
+   "list": [
+    {
+     "id": "mod_star_notes",
+     "title": "观星笔记",
+     "width": 70,
+     "lines": [
+      " 纸页被翻得很旧了。",
+      "  观察记录 ",
+      " 第 41 天：帷幕星云第三行星方向的背景星等下降 0.02。",
+      " 第 58 天：下降 0.11。它不吞光，它只是站在前面。",
+      " 第 73 天：我数不过来了。"
+     ],
+     "actions": [
+      {
+       "text": "合上笔记",
+       "effects": [
+        {
+         "type": "close_view"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "npcApproach": {
+   "list": [
+    {
+     "id": "ap_npc_astronomer_1",
+     "npcId": "npc_astronomer",
+     "condition": "flag:mod_watcher",
+     "dialogue": "dialogue_astronomer",
+     "priority": 1,
+     "once": false
+    }
+   ]
+  }
+ }
+}

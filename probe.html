@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>诊断探针（纯文本模式）</title>
+<style>
+  body { margin:0; padding:14px; background:#111; color:#eee;
+         font-family:"Consolas","Courier New",monospace; font-size:14px; line-height:1.8 }
+  .box { border:1px solid #444; padding:8px 12px; margin:10px 0; }
+  .ok { color:#6de08a } .bad { color:#ff6a6a } .dim { color:#8a8aa0 }
+  pre { margin:6px 0; white-space:pre; font:bold 16px "Consolas","Courier New",monospace; line-height:1.15 }
+  table { border-collapse:collapse } td, th { border:1px solid #333; padding:2px 8px; text-align:right }
+  #hide { position:absolute; left:-9999px; top:0; visibility:hidden }
+</style>
+</head>
+<body>
+<h3>诊断探针  纯文本模式（整页截图发我）</h3>
+<div class="box">
+  <b>纯 HTML 文字</b>（这行是白字就说明网页文字正常）<br>
+  中文测试 ABCDEFG 0123456789 @#$%&amp;*+-=[]{}|;:,.!?
+</div>
+
+<div class="box">
+  <b>&lt;pre&gt; 等宽对齐</b>（下面三行应当左端对齐、每行一样宽）
+  <pre>####........####
+#..@...........#
+####........####</pre>
+</div>
+
+<div class="box">
+  <b>线框字符</b>（<code></code> 都要看得见，缺就是字体问题）
+  <pre id="glyphs"></pre>
+</div>
+
+<div class="box">
+  <b>字体度量</b>（纯文本模式的字号自适应靠它，量错了整屏就错位）
+  <div id="metrics" class="dim">测量中</div>
+  <table id="tbl"></table>
+</div>
+
+<div class="box">
+  <b>环境</b>
+  <div id="env"></div>
+</div>
+
+<script>
+function say(sel, html){ var el = document.querySelector(sel); if (el) el.innerHTML += (el.innerHTML ? '<br>' : '') + html; }
+document.getElementById('glyphs').textContent =
+  '\u250c\u2500\u2500\u252c\u2500\u2500\u2510   \u2191\u2193\u2190\u2192   \u25b6 \u25c6 \u2591\u2592\u2593\u2588';
+
+/* ---- 度量：和 space-textout.js 的 _measure 一模一样的量法 ---- */
+function measure(size, sample){
+  var el = document.createElement('pre');
+  el.style.cssText = 'position:absolute;left:-9999px;top:0;visibility:hidden;white-space:pre;margin:0;padding:0';
+  el.style.font = 'bold ' + size + 'px "Consolas", "Courier New", monospace';
+  el.style.lineHeight = '1.15';
+  var s = '';
+  for (var i = 0; i < 100; i++) s += sample;
+  el.textContent = s + '\n' + s;
+  document.body.appendChild(el);
+  var r = el.getBoundingClientRect();
+  document.body.removeChild(el);
+  return { w: r.width / 100, h: r.height / 2 };
+}
+try {
+  var sizes = [10, 12, 15, 18, 22, 28];
+  var rows = '', bad = 0, ratio = 0;
+  for (var i = 0; i < sizes.length; i++){
+    var m = measure(sizes[i], 'M'), c = measure(sizes[i], '\u4e2d');
+    ratio = c.w / m.w;
+    if (ratio < 1.8 || ratio > 2.2) bad++;
+    rows += '<tr><td>' + sizes[i] + 'px</td><td>' + m.w.toFixed(2) + '</td><td>' + m.h.toFixed(2) +
+            '</td><td>' + ratio.toFixed(2) + 'x</td><td>' + (Math.round(1000 / m.w) / 10) + '</td></tr>';
+  }
+  document.getElementById('tbl').innerHTML =
+    '<tr><th>字号</th><th>单格宽</th><th>单格高</th><th>汉字宽比</th><th>1920 能放几列</th></tr>' + rows;
+  document.getElementById('metrics').innerHTML =
+    '<span class="' + (bad ? 'bad' : 'ok') + '">' + (bad ? 'FAIL 汉字宽度不是 2 格，中文行会错位（换一个等宽 CJK 字体）' :
+     'OK 汉字正好是 2 格宽，中文排版对齐') + '</span><br>' +
+    '<span class="dim">单格高 = 字号 x 1.15（空格子的行高）；列数 = 窗口宽 / 单格宽</span>';
+} catch (e){
+  document.getElementById('metrics').textContent = '度量异常：' + e.message;
+}
+
+/* ---- 存档 / mod 面板要用的本地存储 ---- */
+var ls = 'OK';
+try { localStorage.setItem('__probe', '1'); localStorage.removeItem('__probe'); }
+catch (e){ ls = 'FAIL（无痕模式？存档和 F2 装 mod 会不可用）'; }
+
+document.getElementById('env').innerHTML =
+  '视口 ' + window.innerWidth + ' x ' + window.innerHeight +
+  '   dpr ' + (window.devicePixelRatio || 1) + '<br>' +
+  'localStorage ' + ls + '<br>' +
+  'UA ' + navigator.userAgent;
+</script>
+<div class="box" id="verdict"></div>
+<script>
+/* 汇总：把上面几项量出来的结果收成一句话，截图时一眼就能看出过没过 */
+(function(){
+  var items = [];
+  var mEl = document.getElementById('metrics');
+  var m = (mEl && (mEl.textContent || mEl.innerHTML)) || '';
+  items.push(['汉字宽比 = 2 格（中文行不会错位）', m.indexOf('OK') >= 0 && m.indexOf('FAIL') < 0]);
+  var g = (document.getElementById('glyphs').textContent || '');
+  items.push(['线框 / 箭头 / 方块字符能显示', g.length > 10]);
+  var ls = true; try { localStorage.setItem('__probe2', '1'); localStorage.removeItem('__probe2'); } catch (e){ ls = false; }
+  items.push(['localStorage 可用（存档 / F2 装 mod）', ls]);
+  items.push(['字体度量表已生成', document.querySelectorAll('#tbl tr').length >= 6]);
+  var ok = items.filter(function (i){ return i[1]; }).length, all = ok === items.length;
+  document.getElementById('verdict').innerHTML =
+    '<b>探针结论：<span class="' + (all ? 'ok' : 'bad') + '">' + (all ? '全部通过' : '有问题') + '</span></b>' +
+    '（' + ok + '/' + items.length + '）<br>' +
+    items.map(function (i){ return '<span class="' + (i[1] ? 'ok' : 'bad') + '">' + (i[1] ? 'OK  ' : 'FAIL') + '</span> ' + i[0]; }).join('<br>');
+})();
+</script>
+</body>
+</html>
