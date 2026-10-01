@@ -3,7 +3,7 @@
 > **下一个 AI：先读这一份。** 它按「框架 / 已有功能 / 未完成 / 改过什么」四块写清楚，
 > 读完你就知道项目在哪、能跑什么、下一步干什么。其它文档按需再查（见下面「文档地图」）。
 >
-> 更新时间：2026-10-02　|　内容版本 `1.6.0-text`　|　基线：`node tests/run_all.js` **793 项全绿**、`validate_space.py` **0 错 0 警**
+> 更新时间：2026-10-02　|　内容版本 `1.6.0-text`　|　基线：`node tests/run_all.js` **803 项全绿**、`validate_space.py` **0 错 0 警**
 
 ---
 
@@ -14,7 +14,7 @@ cd D:/大肥鱼工作区/朔/space
 
 python build_space.py              # 内容 + 引擎 -> 自包含 space-text.html（改内容或引擎后必跑）
                                    # 末尾会自动校验「合并 mod 之后」的内容，有错就不出产物
-node tests/run_all.js              # 回归：12 个文件 / 793 项
+node tests/run_all.js              # 回归：12 个文件 / 803 项
 python tools/validate_space.py      # 内容层静态校验（要 0 错 0 警）
 python tools/validate_space.py --mods-dir mods   # 把 mod 合并进来再校验（诊断 mod 用）
 python tools/update_context.py      # 重算 AI_CONTEXT.md 的数字与文件树（build 会自动跑一次）
@@ -147,7 +147,7 @@ engine/space-textshell.js
 
 | 项 | 状态 |
 |---|---|
-| 回归测试 | `node tests/run_all.js`  **793 项全绿**（space 101 / world 206 / arch 100 / text 30 / shell 92 / build 78 / merge_parity 28 / maprules_parity 11 / validate 29 / names 31 / terrain 24 / strategy 63）|
+| 回归测试 | `node tests/run_all.js`  **803 项全绿**（space 101 / world 206 / arch 100 / text 30 / shell 92 / build 78 / merge_parity 28 / maprules_parity 11 / validate 29 / names 31 / terrain 24 / strategy 73）|
 | 命名与文化 | `content/space.json` 的 `nameCultures`（7 套语言覆盖 10 个派系）+ `tools/gen_world.py` 的 `load_cultures` / `place_name` / `person_name`；类型词按站点种类挑；生成名不与手写层 48 个地名撞车 |
 | 内容校验 | `python tools/validate_space.py`  0 错 0 警；`--mods-dir mods` 合并后仍是 0 错 0 警 |
 | 校验器可信度 | `tools/space_merge.py`（Python 侧合并，与引擎逐字节一致）+ `tests/test_merge_parity.js` / `test_maprules_parity.js`（90 场景 135160 格逐格比对） |
@@ -231,7 +231,7 @@ engine/space-textshell.js
 
 ## 5 接手第一步（checklist）
 
-1. **跑一遍基线**：`python build_space.py`  `node tests/run_all.js`  `python tools/validate_space.py`。要看到 **793 / 0** 与 **0 错 0 警**；不绿先修，别往下做。
+1. **跑一遍基线**：`python build_space.py`  `node tests/run_all.js`  `python tools/validate_space.py`。要看到 **803 / 0** 与 **0 错 0 警**；不绿先修，别往下做。
 2. **读 `DESIGN.md` 第 1 段**（它是玩法方向） 如果那一节还标着「待确认」，先确认或直接续写第 2 段。
 3. **要动工程**：先看 `CONTRIBUTING.md` 的必跑命令与「改动类型  更新哪份文档」；改内容或引擎**必须重新 build**。
 4. **别碰**：`zhanyi.json`（一个字节都不许动）；`AI_CONTEXT.md` 里的数字（交给 `tools/update_context.py`）。

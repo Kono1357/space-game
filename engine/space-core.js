@@ -3375,6 +3375,12 @@ registerViewProvider('situation', function(g){
   out.push({ text: ' 名称            当前    开局   变化', fg: 'accent' });
   for (var k = 0; k < keys.length; k++){
     var id = keys[k], r = named[id] || {}, base = num(r.amount, 0), now = num(cs[id], 0), diff = now - base;
+    /* resources 里标了 hidden 的是**内部账本**（每个殖民地的人口/士气、每个派系的态度、
+       作战状态…）：它们有专门的面板（殖民地看板 / 外交态势 / 作战室）好好显示，
+       不该在这一屏里以 "col_col_sol3_morale" 这种原始 id 倒出来。
+       （第 4 期踩过：播种 62 个内部计数器之后，情报板的「态势」和资源终端的「现场盘点」
+        各多出五六十行原始 id，玩家第一眼看到的就是这个。） */
+    if (r.hidden === true) continue;
     out.push({ text: ' ' + str(r.name, id) + '    ' + now + str(r.unit, '') +
                      (diff ? ('   ' + base + '   ' + (diff > 0 ? '+' : '') + diff) : ('   ' + base + '   0')),
                fg: diff ? (diff > 0 ? 'good' : 'warn') : 'ui' });

@@ -195,6 +195,78 @@ section('④c 舰队不够就不给派（按钮直接消失）');
      JSON.stringify((g.ui.view.actions || []).map(function (a){ return a.text; })));
 })();
 
+
+/* ---------------------------------------------------------------- ④d 造舰与强攻 */
+section('④d 合金 -> 舰队 -> 打节点 -> 回收合金：这个循环要成立 ★');
+
+(function (){
+  var g = newGame();
+  g.world.counters.alloy = 100;
+  var f0 = g.world.counters.fleets;
+  g.openView('fleet_roster');
+  var b = actIdx(g, '轨道船坞整备');
+  ok('舰队名册里有造舰动作', b >= 0, JSON.stringify((g.ui.view.actions || []).map(function (a){ return a.text; })));
+  g.viewChoose(b);
+  ok('造舰：舰队 +2 ★', g.world.counters.fleets === f0 + 2, g.world.counters.fleets);
+  ok('造舰：合金 -25', g.world.counters.alloy === 75, g.world.counters.alloy);
+
+  var g2 = newGame();
+  g2.world.counters.alloy = 10;
+  g2.openView('fleet_roster');
+  ok('合金不够时造舰按钮消失 ★', actIdx(g2, '轨道船坞整备') < 0);
+
+  var g3 = newGame();
+  g3.world.counters.fleets = 6;
+  g3.openView('fleet_ops');
+  ok('舰队 >= 5 时出现「强攻」档位（守备 4 的目标才有解）★', actIdx(g3, '强攻 裂隙-3') >= 0);
+  var g4 = newGame();
+  g4.world.counters.fleets = 4;
+  g4.openView('fleet_ops');
+  ok('舰队 < 5 时没有强攻档位', actIdx(g4, '强攻 裂隙-3') < 0);
+})();
+
+section('④e 整场战役是打得完的（不是摆设）★');
+
+(function (){
+  var g = newGame();
+  var builds = 0;
+  function buildTo(n){
+    while (g.world.counters.fleets < n){
+      g.openView('fleet_roster');
+      var b = actIdx(g, '轨道船坞整备');
+      if (b < 0){ g.closeView(); return false; }
+      g.viewChoose(b); g.closeView(); builds++;
+      if (builds > 40) return false;
+    }
+    return true;
+  }
+  var plan = [['裂隙-7', 3, '派 3 支舰队打 裂隙-7'],
+              ['铁砧', 3, '派 3 支舰队打 铁砧'],
+              ['裂隙-3', 5, '强攻 裂隙-3']];
+  var stuck = [];
+  plan.forEach(function (t){
+    if (!buildTo(t[1])){ stuck.push('造不出足够的舰队去打 ' + t[0]); return; }
+    g.openView('fleet_ops');
+    var i = actIdx(g, t[2]);
+    if (i < 0){ stuck.push(t[0] + ' 没有可用动作'); g.closeView(); return; }
+    g.viewChoose(i);
+    var w = actIdx(g, '接战（'), l = actIdx(g, '硬打（');
+    if (w < 0 && l < 0){ stuck.push(t[0] + ' 战斗视图没有按钮'); g.closeView(); return; }
+    g.viewChoose(w >= 0 ? w : l);
+    g.closeView();
+  });
+  ok('按「造够舰队再打」的策略，三个目标都能拿下 ★', stuck.length === 0, stuck.join(' | '));
+  ok('战役计数到 3/3 ★', Core.num(g.world.counters.gw_wars_ops, 0) === 3, g.world.counters.gw_wars_ops);
+  ok('三个节点归属都变成 player_remnant ★',
+     ['rift7', 'ironhold', 'rift3'].every(function (k){
+       return (g.world.galaxy[k] || {}).owner === 'player_remnant';
+     }), JSON.stringify(['rift7','ironhold','rift3'].map(function (k){ return (g.world.galaxy[k]||{}).owner; })));
+  ok('打完还有舰队剩下（不会把自己打空到卡死）', Core.num(g.world.counters.fleets, 0) >= 0, g.world.counters.fleets);
+  console.log('       通关：造舰 ' + builds + ' 次，收尾 舰队 ' + g.world.counters.fleets
+            + ' / 合金 ' + g.world.counters.alloy + ' / 污染 ' + g.world.counters.pollution
+            + ' / 民情 ' + g.world.counters.morale);
+})();
+
 /* ---------------------------------------------------------------- ⑤ 殖民地 */
 section('⑤ 殖民地每天在变：口粮决定士气，士气决定人口 ★');
 

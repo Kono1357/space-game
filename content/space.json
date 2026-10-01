@@ -25106,7 +25106,11 @@
      },
      {
       "title": " 一句话 ",
-      "provider": "situation"
+      "lines": [
+       " 舰队 {counters.fleets} 支　合金 {counters.alloy}　口粮 {counters.food} 天　民情 {counters.morale}",
+       " 污染 {counters.pollution} 级　已交战节点 {counters.gw_wars} 处　战役进度 {counters.gw_wars_ops}/3",
+       " 账本都在下面的看板里；这里只报一句话。"
+      ]
      }
     ],
     "actions": [
@@ -25195,6 +25199,35 @@
       ]
      },
      {
+      "text": "轨道船坞整备 2 支舰队（-25 合金）",
+      "condition": {
+       "type": "counter",
+       "counter": "alloy",
+       "op": ">=",
+       "value": 25
+      },
+      "cost": {
+       "counter": "alloy",
+       "amount": 25
+      },
+      "effects": [
+       {
+        "type": "counter_add",
+        "counter": "fleets",
+        "delta": 2
+       },
+       {
+        "type": "log",
+        "text": "【船坞】两艘新舰下水，编入索尔轨道舰队。",
+        "level": "good"
+       },
+       {
+        "type": "hint",
+        "text": "舰队补到 {counters.fleets} 支。合金是唯一的瓶颈 —— 矿场和打下来的节点都能补。"
+       }
+      ]
+     },
+     {
       "text": "关闭",
       "effects": [
        {
@@ -25218,10 +25251,6 @@
       "lines": [
        " 人口、士气、口粮、矿石、防御每天结算一次；口粮见底士气就掉。"
       ]
-     },
-     {
-      "title": " 活资源 ",
-      "provider": "situation"
      }
     ],
     "actions": [
@@ -25369,10 +25398,6 @@
       ]
      },
      {
-      "title": " 星图 ",
-      "provider": "galaxy_live"
-     },
-     {
       "title": " 说明 ",
       "lines": [
        " 打之前先看守备：你派的 3 支和它的守备当场比大小，硬碰硬是打得赢才划算。",
@@ -25433,6 +25458,57 @@
       ]
      },
      {
+      "text": "派 5 支舰队强攻 裂隙-7（守备 2）",
+      "condition": {
+       "type": "all",
+       "all": [
+        {
+         "type": "counter",
+         "counter": "fleets",
+         "op": ">=",
+         "value": 5
+        },
+        {
+         "type": "counter",
+         "counter": "ops_done_1",
+         "op": "==",
+         "value": 0
+        }
+       ]
+      },
+      "cost": {
+       "counter": "fleets",
+       "amount": 5
+      },
+      "effects": [
+       {
+        "type": "counter_set",
+        "counter": "ops_mine",
+        "value": 5
+       },
+       {
+        "type": "galaxy_get",
+        "node": "rift7",
+        "field": "fleets",
+        "counter": "ops_enemy"
+       },
+       {
+        "type": "counter_set",
+        "counter": "ops_target",
+        "value": 1
+       },
+       {
+        "type": "log",
+        "text": "【作战】五支舰队压上，去 裂隙-7。",
+        "level": "warn"
+       },
+       {
+        "type": "open_view",
+        "view": "ops_battle_1"
+       }
+      ]
+     },
+     {
       "text": "派 3 支舰队打 铁砧（守备 3）",
       "condition": {
        "type": "all",
@@ -25475,6 +25551,57 @@
        {
         "type": "log",
         "text": "【作战】三支舰队离开索尔轨道，前往 铁砧。",
+        "level": "warn"
+       },
+       {
+        "type": "open_view",
+        "view": "ops_battle_2"
+       }
+      ]
+     },
+     {
+      "text": "派 5 支舰队强攻 铁砧（守备 3）",
+      "condition": {
+       "type": "all",
+       "all": [
+        {
+         "type": "counter",
+         "counter": "fleets",
+         "op": ">=",
+         "value": 5
+        },
+        {
+         "type": "counter",
+         "counter": "ops_done_2",
+         "op": "==",
+         "value": 0
+        }
+       ]
+      },
+      "cost": {
+       "counter": "fleets",
+       "amount": 5
+      },
+      "effects": [
+       {
+        "type": "counter_set",
+        "counter": "ops_mine",
+        "value": 5
+       },
+       {
+        "type": "galaxy_get",
+        "node": "ironhold",
+        "field": "fleets",
+        "counter": "ops_enemy"
+       },
+       {
+        "type": "counter_set",
+        "counter": "ops_target",
+        "value": 2
+       },
+       {
+        "type": "log",
+        "text": "【作战】五支舰队压上，去 铁砧。",
         "level": "warn"
        },
        {
@@ -25531,6 +25658,86 @@
        {
         "type": "open_view",
         "view": "ops_battle_3"
+       }
+      ]
+     },
+     {
+      "text": "派 5 支舰队强攻 裂隙-3（守备 4）",
+      "condition": {
+       "type": "all",
+       "all": [
+        {
+         "type": "counter",
+         "counter": "fleets",
+         "op": ">=",
+         "value": 5
+        },
+        {
+         "type": "counter",
+         "counter": "ops_done_3",
+         "op": "==",
+         "value": 0
+        }
+       ]
+      },
+      "cost": {
+       "counter": "fleets",
+       "amount": 5
+      },
+      "effects": [
+       {
+        "type": "counter_set",
+        "counter": "ops_mine",
+        "value": 5
+       },
+       {
+        "type": "galaxy_get",
+        "node": "rift3",
+        "field": "fleets",
+        "counter": "ops_enemy"
+       },
+       {
+        "type": "counter_set",
+        "counter": "ops_target",
+        "value": 3
+       },
+       {
+        "type": "log",
+        "text": "【作战】五支舰队压上，去 裂隙-3。",
+        "level": "warn"
+       },
+       {
+        "type": "open_view",
+        "view": "ops_battle_3"
+       }
+      ]
+     },
+     {
+      "text": "轨道船坞整备 2 支舰队（-25 合金）",
+      "condition": {
+       "type": "counter",
+       "counter": "alloy",
+       "op": ">=",
+       "value": 25
+      },
+      "cost": {
+       "counter": "alloy",
+       "amount": 25
+      },
+      "effects": [
+       {
+        "type": "counter_add",
+        "counter": "fleets",
+        "delta": 2
+       },
+       {
+        "type": "log",
+        "text": "【船坞】两艘新舰下水，编入索尔轨道舰队。",
+        "level": "good"
+       },
+       {
+        "type": "hint",
+        "text": "舰队补到 {counters.fleets} 支。合金是唯一的瓶颈 —— 矿场和打下来的节点都能补。"
        }
       ]
      },
@@ -26062,7 +26269,7 @@
      {
       "title": " 结果 ",
       "lines": [
-       " 裂隙-7 拿下了。守备清空，节点归索索尔。"
+       " 裂隙-7 拿下了。守备清空，节点归索尔。"
       ]
      },
      {
@@ -26071,10 +26278,6 @@
        " 舰队 {counters.fleets} 支　合金 {counters.alloy}　民情 {counters.morale}　污染 {counters.pollution}",
        " 已交战节点 {counters.gw_wars} 处"
       ]
-     },
-     {
-      "title": " 星图 ",
-      "provider": "galaxy_live"
      }
     ],
     "actions": [
@@ -26114,10 +26317,6 @@
        " 舰队 {counters.fleets} 支　合金 {counters.alloy}　民情 {counters.morale}　污染 {counters.pollution}",
        " 已交战节点 {counters.gw_wars} 处"
       ]
-     },
-     {
-      "title": " 星图 ",
-      "provider": "galaxy_live"
      }
     ],
     "actions": [
@@ -26148,7 +26347,7 @@
      {
       "title": " 结果 ",
       "lines": [
-       " 铁砧 拿下了。守备清空，节点归索索尔。"
+       " 铁砧 拿下了。守备清空，节点归索尔。"
       ]
      },
      {
@@ -26157,10 +26356,6 @@
        " 舰队 {counters.fleets} 支　合金 {counters.alloy}　民情 {counters.morale}　污染 {counters.pollution}",
        " 已交战节点 {counters.gw_wars} 处"
       ]
-     },
-     {
-      "title": " 星图 ",
-      "provider": "galaxy_live"
      }
     ],
     "actions": [
@@ -26200,10 +26395,6 @@
        " 舰队 {counters.fleets} 支　合金 {counters.alloy}　民情 {counters.morale}　污染 {counters.pollution}",
        " 已交战节点 {counters.gw_wars} 处"
       ]
-     },
-     {
-      "title": " 星图 ",
-      "provider": "galaxy_live"
      }
     ],
     "actions": [
@@ -26234,7 +26425,7 @@
      {
       "title": " 结果 ",
       "lines": [
-       " 裂隙-3 拿下了。守备清空，节点归索索尔。"
+       " 裂隙-3 拿下了。守备清空，节点归索尔。"
       ]
      },
      {
@@ -26243,10 +26434,6 @@
        " 舰队 {counters.fleets} 支　合金 {counters.alloy}　民情 {counters.morale}　污染 {counters.pollution}",
        " 已交战节点 {counters.gw_wars} 处"
       ]
-     },
-     {
-      "title": " 星图 ",
-      "provider": "galaxy_live"
      }
     ],
     "actions": [
@@ -26286,10 +26473,6 @@
        " 舰队 {counters.fleets} 支　合金 {counters.alloy}　民情 {counters.morale}　污染 {counters.pollution}",
        " 已交战节点 {counters.gw_wars} 处"
       ]
-     },
-     {
-      "title": " 星图 ",
-      "provider": "galaxy_live"
      }
     ],
     "actions": [
@@ -33059,6 +33242,534 @@
     "amount": 0,
     "unit": "点",
     "carried": false
+   },
+   {
+    "id": "col_col_sol3_pop",
+    "name": "索尔 III 人口",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_sol3_morale",
+    "name": "索尔 III 士气",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_sol3_food",
+    "name": "索尔 III 口粮",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_sol3_ore",
+    "name": "索尔 III 矿石",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_sol3_defense",
+    "name": "索尔 III 防御",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_sol4_pop",
+    "name": "索尔 IV 人口",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_sol4_morale",
+    "name": "索尔 IV 士气",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_sol4_food",
+    "name": "索尔 IV 口粮",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_sol4_ore",
+    "name": "索尔 IV 矿石",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_sol4_defense",
+    "name": "索尔 IV 防御",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_veil_pop",
+    "name": "帷幕前哨 人口",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_veil_morale",
+    "name": "帷幕前哨 士气",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_veil_food",
+    "name": "帷幕前哨 口粮",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_veil_ore",
+    "name": "帷幕前哨 矿石",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_veil_defense",
+    "name": "帷幕前哨 防御",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_ruins_pop",
+    "name": "遗迹考古 人口",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_ruins_morale",
+    "name": "遗迹考古 士气",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_ruins_food",
+    "name": "遗迹考古 口粮",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_ruins_ore",
+    "name": "遗迹考古 矿石",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_ruins_defense",
+    "name": "遗迹考古 防御",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_res_pop",
+    "name": "资源采集点 人口",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_res_morale",
+    "name": "资源采集点 士气",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_res_food",
+    "name": "资源采集点 口粮",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_res_ore",
+    "name": "资源采集点 矿石",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_res_defense",
+    "name": "资源采集点 防御",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_dock_pop",
+    "name": "轨道船坞社区 人口",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_dock_morale",
+    "name": "轨道船坞社区 士气",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_dock_food",
+    "name": "轨道船坞社区 口粮",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_dock_ore",
+    "name": "轨道船坞社区 矿石",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_dock_defense",
+    "name": "轨道船坞社区 防御",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_cold_pop",
+    "name": "冷炉冶炼 人口",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_cold_morale",
+    "name": "冷炉冶炼 士气",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_cold_food",
+    "name": "冷炉冶炼 口粮",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_cold_ore",
+    "name": "冷炉冶炼 矿石",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_cold_defense",
+    "name": "冷炉冶炼 防御",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_lamp_pop",
+    "name": "孤灯前哨 人口",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_lamp_morale",
+    "name": "孤灯前哨 士气",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_lamp_food",
+    "name": "孤灯前哨 口粮",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_lamp_ore",
+    "name": "孤灯前哨 矿石",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_lamp_defense",
+    "name": "孤灯前哨 防御",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_drift_pop",
+    "name": "漂流者聚落 人口",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_drift_morale",
+    "name": "漂流者聚落 士气",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_drift_food",
+    "name": "漂流者聚落 口粮",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_drift_ore",
+    "name": "漂流者聚落 矿石",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_drift_defense",
+    "name": "漂流者聚落 防御",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_anchor_pop",
+    "name": "长夜锚地补给 人口",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_anchor_morale",
+    "name": "长夜锚地补给 士气",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_anchor_food",
+    "name": "长夜锚地补给 口粮",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_anchor_ore",
+    "name": "长夜锚地补给 矿石",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "col_col_anchor_defense",
+    "name": "长夜锚地补给 防御",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "rel_veil_pact",
+    "name": "帷幕公约 态度",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "rel_vega_compact",
+    "name": "织女星共同体 态度",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "rel_alpha_traders",
+    "name": "南门二商团 态度",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "rel_iron_chorus",
+    "name": "铁合唱 态度",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "rel_abyss",
+    "name": "深渊 态度",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "rel_old_empire",
+    "name": "旧帝国残响 态度",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "rel_free_miners",
+    "name": "自由矿工 态度",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "rel_scavenger_league",
+    "name": "拾荒者联盟 态度",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "rel_silent_order",
+    "name": "静默教团 态度",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "ops_mine",
+    "name": "作战：我方投入",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "ops_enemy",
+    "name": "作战：敌方守备",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "ops_target",
+    "name": "作战：目标编号",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "gw_wars_ops",
+    "name": "战役：已拿下节点",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "ops_done_1",
+    "name": "作战：目标 1 已完成",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "ops_done_2",
+    "name": "作战：目标 2 已完成",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
+   },
+   {
+    "id": "ops_done_3",
+    "name": "作战：目标 3 已完成",
+    "amount": 0,
+    "unit": "",
+    "carried": false,
+    "hidden": true
    }
   ]
  },
