@@ -1,0 +1,9 @@
+# 构建 / 运行缓存（不该进版本库）
+__pycache__/
+*.pyc
+.ctx_stamp
+
+# 编辑器 / 系统
+.DS_Store
+Thumbs.db
+desktop.ini
