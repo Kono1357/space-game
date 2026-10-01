@@ -27,20 +27,118 @@ def load_space(path=None):
     path = path or os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'content', 'space.json')
     with open(path, encoding='utf-8') as f: return json.load(f)
 
+def js_truthy(v):
+    """JS 的真假值：{} / [] 为真，'' / 0 / None 为假（Python 里 {} 是假，这里要对齐）"""
+    if v is None or v is False: return False
+    if v is True: return True
+    if isinstance(v, (int, float)): return v != 0
+    if isinstance(v, str): return v != ''
+    return True
+
+
+def entry_passable(entry, presets, inter):
+    """一个图例条目的可走性 —— 逐字对齐引擎 resolveLegendEntry + compileScene：
+        引擎判定是  pass = 0 if (d.passable === false or d.solid) else 1
+       注意 `=== false` 是**严格比较**：写了 passable: 0 / null 都不算「挡住」，
+       而 solid 走的是真假值判断。
+
+    旧实现是 `bool(e.get('passable'))`：对一个「既没写 passable 也没写 solid」的条目，
+    引擎当它是可走的，旧实现当它是墙 —— 校验器和引擎对这种格子会给出相反的结论。
+    校验器一旦会说谎，比没有校验器更危险，所以这里照引擎抄。
+    """
+    if entry is None:
+        return False                     # 引擎：没有图例条目 = 墙
+    if isinstance(entry, str):
+        entry = {'preset': entry}
+    if not isinstance(entry, dict):
+        return True
+    d = {'passable': True, 'solid': False}
+    p = presets.get(entry.get('preset')) if entry.get('preset') else None
+    if isinstance(p, dict):
+        d.update(p)                      # 预设是扁平表，只关心 passable / solid
+    idef = inter.get(entry.get('interactable')) if entry.get('interactable') else None
+    if isinstance(idef, dict):
+        d['passable'] = bool(idef.get('passable'))
+        d['solid'] = not d['passable']
+    if entry.get('npc'):
+        d['passable'] = True; d['solid'] = False
+    for f in ('passable', 'solid'):
+        if f in entry:
+            d[f] = entry[f]
+    return not (d.get('passable') is False or js_truthy(d.get('solid')))
+
+
+def resolve_ch(entry, presets, inter, cur_ch):
+    """tileEdit 会把这一格的**字符**也换掉（引擎里是 g.ch[ei] = d3.ch），这里照着走"""
+    if entry is None:
+        return cur_ch
+    if isinstance(entry, str):
+        entry = {'preset': entry}
+    if not isinstance(entry, dict):
+        return cur_ch
+    ch = cur_ch
+    p = presets.get(entry.get('preset')) if entry.get('preset') else None
+    if isinstance(p, dict) and p.get('ch') is not None:
+        ch = p['ch']
+    idef = inter.get(entry.get('interactable')) if entry.get('interactable') else None
+    if isinstance(idef, dict) and idef.get('symbol') is not None:
+        ch = idef['symbol']
+    if entry.get('playerSpawn'):
+        fp = presets.get('floor')
+        if isinstance(fp, dict) and fp.get('ch') is not None:
+            ch = fp['ch']
+    if 'ch' in entry and entry['ch'] is not None:
+        ch = entry['ch']
+    return ch
+
+
+def eff_tiles(scene, space):
+    """把 tileEdits 真的盖到 tiles 上，得到「引擎实际看到的那张图」。
+
+    以前 grid_of / scene_exits 只读 scene['tiles']，**完全不看 tileEdits**，
+    而引擎 compileScene 是会应用它们的。后果是：mod 用 tileEdits 凿出来的门，
+    在规则检查里仍然是一堵墙 ——
+        R4「出口可站」会对完全合法的 mod 报假错，
+        R1 / R2 / R3 / R7 也会基于错的图去算。
+    实测：mods/example_mod 在 station_corridor (0,6) 凿了一扇门，
+          引擎 isPassable() 返回 true，而旧 map_rules 报「R4 出口不可走 (0,6)」。
+    """
+    rows = [list(r) for r in (scene.get('tiles') or [])]
+    edits = scene.get('tileEdits')
+    if not rows or not isinstance(edits, list):
+        return rows
+    H, W = len(rows), len(rows[0])
+    presets = space.get('presets') or {}
+    inter = {i['id']: i for i in (space.get('interactables') or {}).get('list', [])
+             if isinstance(i, dict) and 'id' in i}
+    for ed in edits:
+        if not isinstance(ed, dict): continue
+        x, y = ed.get('x'), ed.get('y')
+        if isinstance(x, bool) or isinstance(y, bool): continue
+        if not isinstance(x, int) or not isinstance(y, int): continue
+        if not (0 <= x < W and 0 <= y < H): continue        # 引擎越界只警告并跳过
+        if ed.get('legend') is not None:
+            entry = ed['legend']
+        else:
+            entry = {k: ed[k] for k in ('preset', 'ch', 'fg', 'bg', 'passable', 'solid',
+                                        'interactable', 'name', 'playerSpawn') if k in ed}
+        rows[y][x] = resolve_ch(entry, presets, inter, rows[y][x])
+    return rows
+
+
 def make_resolver(space):
     default = space.get('config', {}).get('defaultLegend', {})
     presets = space.get('presets', {})
     inter = {i['id']: i for i in space.get('interactables', {}).get('list', [])}
     def passable(scene, ch):
-        e = (scene.get('legend') or {}).get(ch, default.get(ch))
-        if not isinstance(e, dict): return False
-        if 'preset' in e: return bool((presets.get(e['preset']) or {}).get('passable'))
-        if 'interactable' in e: return bool((inter.get(e['interactable']) or {}).get('passable'))
-        return bool(e.get('passable'))
+        lg = scene.get('legend') or {}
+        e = lg[ch] if ch in lg else default.get(ch)
+        return entry_passable(e, presets, inter)
     return passable
 
 def grid_of(space, scene, passable):
-    return [[passable(scene, ch) for ch in row] for row in scene['tiles']]
+    """引擎口径的可走矩阵：先应用 tileEdits，再按有效图例判定"""
+    return [[passable(scene, ch) for ch in row] for row in eff_tiles(scene, space)]
 
 def regions(pm):
     H = len(pm); W = len(pm[0]); seen = [[0]*W for _ in range(H)]; sizes = []
@@ -82,12 +180,14 @@ def door_run(pm, x, y):
         while yy < H and pm[yy][x]: cells.add((x, yy)); yy += 1
     return cells, len(cells)
 
-def scene_exits(scene):
-    """出口的两个来源（跟引擎 compileScene 一个口径）：scene.exits 数组 + legend 里的 exit（裂隙口这种）。"""
+def scene_exits(scene, space=None):
+    """出口的两个来源（跟引擎 compileScene 一个口径）：scene.exits 数组 + legend 里的 exit（裂隙口这种）。
+    space 传进来时会先应用 tileEdits —— 否则 tileEdits 写进去的出口字符会被漏掉。"""
     out = []
     for e in (scene.get('exits') or []):
         if isinstance(e, dict) and e.get('x') is not None:
             out.append({'x': e['x'], 'y': e['y'], 'to': e.get('to') or e.get('scene'), 'at': e.get('at')})
+    tiles = eff_tiles(scene, space) if space is not None else (scene.get('tiles') or [])
     for ch, lg in (scene.get('legend') or {}).items():
         if not isinstance(lg, dict): continue
         # 跟引擎 resolveLegendEntry 同口径：entry.exit 或 entry.to 都算出口
@@ -96,7 +196,7 @@ def scene_exits(scene):
         else: continue
         to = ex.get('to') or ex.get('scene') or lg.get('to') or lg.get('scene')
         at = ex.get('at') or lg.get('at')
-        for y, row in enumerate(scene.get('tiles') or []):
+        for y, row in enumerate(tiles):
             for x, c in enumerate(row):
                 if c == ch: out.append({'x': x, 'y': y, 'to': to, 'at': at, 'legend': ch})
     return out
@@ -109,7 +209,7 @@ def check_scene(space, scene, passable, exits_by_scene=None):
     if len(tiles) != H or any(len(r) != W for r in tiles):
         return ['R9 尺寸与 tiles 不一致：%dx%d' % (W, H)], []
     pm = grid_of(space, scene, passable)
-    exits = scene_exits(scene)
+    exits = scene_exits(scene, space)
     if not (SIZE_MIN[0] <= W <= SIZE_MAX[0] and SIZE_MIN[1] <= H <= SIZE_MAX[1]):
         errors.append('R9 尺寸越界：%dx%d' % (W, H))
     if W % 2 or H % 2: errors.append('R9 宽高必须是偶数：%dx%d' % (W, H))
@@ -204,7 +304,38 @@ def check_all(space):
         errors.setdefault(sid, []).append('R13 回程不安全：从 %s 走不到任何穿梭机终端（只能单向困死）' % sid)
     return {'errors': errors, 'warnings': warns}
 
+def dump_pass(argv):
+    """--dump-pass：把每个场景的「可走矩阵」按引擎口径吐成 JSON。
+
+    给 tests/test_maprules_parity.js 用：它拿这份矩阵和引擎编译出来的 pass 数组
+    逐格比对，证明「规则看到的图和游戏看到的图是同一张」。
+    这是整个校验器可信的前提 —— 规则和引擎对同一格给出相反结论的话，
+    校验通过就没有任何意义。
+
+    用法: python tools/map_rules.py --dump-pass <基础内容.json> [mod.json ...]
+    """
+    if not argv:
+        sys.exit('用法: python tools/map_rules.py --dump-pass <基础内容.json> [mod.json ...]')
+    with open(argv[0], encoding='utf-8') as f:
+        space = json.load(f)
+    if len(argv) > 1:
+        _here = os.path.dirname(os.path.abspath(__file__))
+        if _here not in sys.path: sys.path.insert(0, _here)
+        import space_merge
+        mods = [space_merge.load_mod(p) for p in argv[1:]]
+        space, _ = space_merge.merge_all(space, mods)
+    passable = make_resolver(space)
+    out = {}
+    for s in (space.get('scenes') or {}).get('list', []):
+        pm = grid_of(space, s, passable)
+        out[s['id']] = [[1 if c else 0 for c in row] for row in pm]
+    sys.stdout.write(json.dumps(out, ensure_ascii=False, separators=(',', ':')))
+
+
 def main():
+    argv = sys.argv[1:]
+    if argv and argv[0] == '--dump-pass':
+        dump_pass(argv[1:]); return 0
     space = load_space(); res = check_all(space)
     n = len(space['scenes']['list'])
     for sid, msgs in res['errors'].items():

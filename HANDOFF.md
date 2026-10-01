@@ -3,7 +3,7 @@
 > **下一个 AI：先读这一份。** 它按「框架 / 已有功能 / 未完成 / 改过什么」四块写清楚，
 > 读完你就知道项目在哪、能跑什么、下一步干什么。其它文档按需再查（见下面「文档地图」）。
 >
-> 更新时间：2026-10-01　|　内容版本 `1.6.0-text`　|　基线：`node tests/run_all.js` **607 项全绿**、`validate_space.py` **0 错 0 警**
+> 更新时间：2026-10-02　|　内容版本 `1.6.0-text`　|　基线：`node tests/run_all.js` **673 项全绿**、`validate_space.py` **0 错 0 警**
 
 ---
 
@@ -13,13 +13,15 @@
 cd D:/大肥鱼工作区/朔/space
 
 python build_space.py              # 内容 + 引擎 -> 自包含 space-text.html（改内容或引擎后必跑）
-node tests/run_all.js              # 回归：6 个文件 / 607 项
+                                   # 末尾会自动校验「合并 mod 之后」的内容，有错就不出产物
+node tests/run_all.js              # 回归：9 个文件 / 673 项
 python tools/validate_space.py      # 内容层静态校验（要 0 错 0 警）
+python tools/validate_space.py --mods-dir mods   # 把 mod 合并进来再校验（诊断 mod 用）
 python tools/update_context.py      # 重算 AI_CONTEXT.md 的数字与文件树（build 会自动跑一次）
 python tools/gen_world.py --selftest # 世界生成自检（可选：换 seed 就是一个新宇宙）
 
 # 可选（地图 / 真机）
-python tools/map_rules.py           # 25 张预设地图的规则校验（R1~R12）
+python tools/map_rules.py           # 25 张预设地图的规则校验（R1~R13）
 python tools/gen_maps.py --selftest 10      # 随机地图生成器自检
 python tools/gen_maps.py --wire-selftest 5  # 自动接线自检（幂等）
 node tools/browser_check.js 1600,900        # 真浏览器自检（Edge headless，需本机有 Edge/Chrome）
@@ -145,10 +147,12 @@ engine/space-textshell.js
 
 | 项 | 状态 |
 |---|---|
-| 回归测试 | `node tests/run_all.js`  **607 项全绿**（space 101 / world 206 / arch 100 / text 30 / shell 92 / build 78）|
-| 内容校验 | `python tools/validate_space.py`  0 错 0 警 |
+| 回归测试 | `node tests/run_all.js`  **673 项全绿**（space 101 / world 206 / arch 100 / text 30 / shell 92 / build 78 / merge_parity 26 / maprules_parity 11 / validate 29）|
+| 内容校验 | `python tools/validate_space.py`  0 错 0 警；`--mods-dir mods` 合并后仍是 0 错 0 警 |
+| 校验器可信度 | `tools/space_merge.py`（Python 侧合并，与引擎逐字节一致）+ `tests/test_merge_parity.js` / `test_maprules_parity.js`（90 场景 135160 格逐格比对） |
+| 构建期闸门 | `build_space.py` 合并 mod 后校验，有错 exit 1 且**不写产物**（逃生口 `--no-check`）|
 | 真机自检 | `node tools/browser_check.js [W,H]`  Edge headless 走遍主场景 + 全部视图（含生成站点档案）+ 情报板 + 阅读弹层，三档分辨率全过 |
-| 地图规则 | `tools/map_rules.py`（R1~R12：门 3 格、边框、四角、单连通、开敞率、尺寸）|
+| 地图规则 | `tools/map_rules.py`（R1~R13：门 3 格、边框、四角、单连通、开敞率、尺寸、回程安全）。**会应用 tileEdits** —— 规则看到的图和引擎编译出来的是同一张（逐格测过）|
 | 随机地图 | `tools/gen_maps.py`（5 种原型、确定性、`--gen/--check/--selftest`）|
 | 自动接线 | `tools/gen_maps.py --wire`（幂等）+ `tools/scaffold_scene.py --scenes N --wire`（一步产出可走的随机站）|
 | 存档 | `saveMigrations` 框架（v1  v2 迁移），读档按版本跑 effects；存档含 `rng` 状态（可复现）|
@@ -207,6 +211,8 @@ engine/space-textshell.js
 | 2026-10-01 | **数值出口二期 R4/R8**：舰队事件加「-1 舰队」代价选项 + `home_guard` 门槛（10 条模板对话）；研究终端加 4 条科技线（裂隙探测  初级净化/局部封印  区域净化，4 计数器 + 4 hook），星图净化/封锁/广域净化改由科技解锁；新增 `test_world` 9.11 节 15 项 | `content/space.json`、`tests/test_world.js`、`tools/browser_check.js`、`README.md`、`HANDOFF.md`、`DEVLOG.md`、`DESIGN.md`、`AI_CONTEXT.md` |
 | 2026-10-01 | **设计映射落地 R1/R2/R3/R5**：9 条胜负判定 hook + `end_game`；败北线 1215；深渊杂音 `random.table`；10 条遗迹事件各 +2 遗物 + 打捞 35% 出遗物；`pop` 变活计数器；星图/情报板/外交/档案各加终局动作；**修了 `morale` 不是活计数器导致误判败北的 bug**，并给 `deserialize` 加了计数器兜底补齐 | `content/space.json`、`engine/space-core.js`、`tests/test_world.js`、`tests/test_space.js`、`tools/browser_check.js` |
 | 2026-10-01 | **设计文档补齐**：`DESIGN.md` 第 2/3 段落盘（张力曲线 / 深渊 3 脚本 / 20 块矩阵 / 反馈节奏 / 8 个困难选择 / R1R13 映射 / 自检）| `DESIGN.md`、`HANDOFF.md`、`DEVLOG.md` |
+| 2026-10-02 | **mod 安全网**：校验器以前只吃 `content/space.json`、**看不见 mod**（拿 mod 文件喂它 → 「场景 0 / 错误 0」静默假通过）。新增 `tools/space_merge.py`（引擎合并语义的 Python 实现，与引擎逐字节一致）、`validate_space.py --mods/--mods-dir`（合并后校验，传 mod 当内容会明确拒绝）、`build_space.py` 构建期闸门（有错不出产物）。顺带修 `map_rules.py` **不看 tileEdits**（对合法 mod 报 R4 假错）和「没写 passable 就当墙」（与引擎钝感相反）。**抓出并修掉 `mods/example_mod` 的 3 处真实违规**（观景台 30x12 违反 R9、两个门只有 1 格违反 R2） | `tools/space_merge.py`、`tools/validate_space.py`、`tools/map_rules.py`、`build_space.py`、`mods/example_mod/mod.json`、`tests/test_merge_parity.js`、`tests/test_maprules_parity.js`、`tests/test_validate.js` |
+| 2026-10-02 | **让命令链不再依赖机器**：7 条毫秒断言加 `SPACE_PERF_SLACK` 环境系数（默认 1.0，慢机器上不再因为机器速度而卡死第 5 步；缩放的绿灯有 ⚠ 提示，不许冒充真绿灯）；`build_space.py` 写产物加 `newline='\n'`，产物换行符不再随 Windows/Linux 变（以前 HEAD 里是 CRLF） | `tests/perf_budget.js`、`tests/run_all.js`、`tests/test_arch.js`、`tests/test_space.js`、`tools/update_context.py`、`build_space.py`、`CONTRIBUTING.md` |
 | 2026-10-01 | **基础互动内容：12 个只读面板全部变成可用面板**：`warehouse_stock`/`build_menu`/`diplomacy`/`medical_status`/`armory_status`/`mine_status`/`farm_status`/`defense_status`/`archive_view`/`weather_view`/`salvage_view`/`trade_view` 各加 23 个带代价的动作，`galaxy_map` 加「补绘星图」，`fleet_status` 加「调舰队回防 / 解除回防」；新增 `test_world` 第 10.6 节（面板有真动作 + 动作真的改变世界）与真机面板动作断言 | `content/space.json`、`tests/test_world.js`、`tools/browser_check.js`、`README.md` |
 | 2026-10-01 | **设计层开工**：新增 `DESIGN.md`（第 1 段：三个问题 + 核心循环 + 三层目标；第 0 节列出 AI_CONTEXT 第 6 节 6 处过时项） | `DESIGN.md`、`DEVLOG.md` |
 | 2026-10-01 | **事件  功能文本**：3 个视图提供者（`pending_events` / `chain_progress` / `situation`）、段落级 `provider`、情报终端 + 情报板、3 条终端触发的情报事件（链式解锁）、资源/舰队终端改显示活数据 | `engine/space-core.js`、`content/space.json`、`tests/test_world.js`、`tests/test_arch.js`、`tools/browser_check.js` |
@@ -221,7 +227,7 @@ engine/space-textshell.js
 
 ## 5 接手第一步（checklist）
 
-1. **跑一遍基线**：`python build_space.py`  `node tests/run_all.js`  `python tools/validate_space.py`。要看到 **607 / 0** 与 **0 错 0 警**；不绿先修，别往下做。
+1. **跑一遍基线**：`python build_space.py`  `node tests/run_all.js`  `python tools/validate_space.py`。要看到 **673 / 0** 与 **0 错 0 警**；不绿先修，别往下做。
 2. **读 `DESIGN.md` 第 1 段**（它是玩法方向） 如果那一节还标着「待确认」，先确认或直接续写第 2 段。
 3. **要动工程**：先看 `CONTRIBUTING.md` 的必跑命令与「改动类型  更新哪份文档」；改内容或引擎**必须重新 build**。
 4. **别碰**：`zhanyi.json`（一个字节都不许动）；`AI_CONTEXT.md` 里的数字（交给 `tools/update_context.py`）。

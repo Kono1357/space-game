@@ -70,6 +70,30 @@ if os.path.isdir(MODS):
             data = load_json(cp, 'mod 内容') if os.path.isfile(cp) else {}
         mods.append({'manifest': man, 'data': data})
 
+# ---------- 构建期校验：必须校验「合并之后」的内容 ----------
+# 以前校验器只吃 content/space.json，**看不见 mod**；而 mod 是被合并进产物的，
+# 于是「校验器说 0 错、进游戏地图整片变实心」是可能的 —— 低门槛路线的致命伤。
+# 现在：把 mod 按引擎的语义真合并一遍，用同一套规则校验合并结果，有错误就不出产物。
+# CONTRIBUTING 第 2 步本来就写着「看报错：…校验器报了错误」，只是以前没接上。
+# 要临时跳过（在调试一个明知坏掉的 mod）：--no-check
+sys.path.insert(0, os.path.join(ROOT, 'tools'))
+import space_merge, validate_space
+
+if '--no-check' not in sys.argv:
+    merged, mrep = space_merge.merge_all(spec, mods)
+    verrs, vwarns, _ = validate_space.validate(merged, SPEC)
+    verrs = list(mrep['errors']) + verrs
+    vwarns = list(mrep['warnings']) + vwarns
+    if verrs:
+        sys.exit('内容校验没过（%d 个错误），不出产物：\n  %s\n\n'
+                 '  修内容；确实要跳过就加 --no-check（跳过 = 放弃这道闸）'
+                 % (len(verrs), '\n  '.join(verrs[:20])))
+    print('校验  合并 %d 个 mod 后：错误 0 / 警告 %d' % (len(mods), len(vwarns)))
+    for w in vwarns[:8]:
+        print('       [警告] ' + w)
+    if len(vwarns) > 8:
+        print('       …… 其余 %d 条警告见 validate_space.py' % (len(vwarns) - 8))
+
 kernel_obj = {}
 if KERNEL and os.path.isfile(KERNEL):
     k = load_json(KERNEL, '兵棋内核')

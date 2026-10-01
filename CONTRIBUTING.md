@@ -32,13 +32,14 @@ python tools/update_context.py
 |---|---|---|---|
 | 1 | `node --check engine/space-core.js` | 三个引擎文件的语法 | 改到不红；这是最快的一道闸 |
 | 2 | `python build_space.py` | 把内容 + 引擎编成自包含 `space-text.html`（末尾会自动同步 `AI_CONTEXT.md`） | 看报错：内容 JSON 坏了 / 模板占位符没替换 / 校验器报了错误 |
-| 3 | `node tests/run_all.js` | 6 个测试文件、全部回归 | 对着红的那条改；不许「先提交再修」 |
+| 3 | `node tests/run_all.js` | 9 个测试文件、全部回归 | 对着红的那条改；不许「先提交再修」 |
 | 4 | `python tools/validate_space.py` | 纯 Python 的内容层校验（图例覆盖 / 引用 / 坐标 / 缺 id + 地图规则 R1~R13） | 补内容或补登记，别改校验器绕过 |
 | 4b | `python tools/map_rules.py` | 地图规则（门宽 >= 3 / 边框 / 四角 / 单连通 / 开敞率 / **R13 回程安全**） | 改地图让它合规，别放宽规则 |
 | 4c | `python tools/gen_maps.py --selftest 10` | 随机地图生成器自检（每种原型多种子，生成结果必须过规则） | 改生成器，别改断言 |
 | 4d | `python tools/gen_maps.py --wire-selftest 5` | 自动接线自检（全门有 transition / 全图连通 / 跑两次幂等） | 改接线逻辑，别放宽断言 |
 | 4e | `python tools/gen_world.py --selftest` | 世界生成自检（同 seed 幂等 / 站点数 / id 不重复） | 改生成器，别放宽断言 |
 | 4f | `node tools/browser_check.js 1600,900` | 真浏览器自检（可选，需 Edge/Chrome；覆盖视图 / 阅读弹层 / 站点档案） | 看报错修 UI；没浏览器会跳过 |
+| 4g | `python tools/validate_space.py --mods-dir mods` | **mod 合并之后再校验一遍**（诊断用；第 2 步已自动包含这一步）。以前校验器只吃 `content/space.json`、**看不见 mod**，所以「校验 0 错、进游戏地图整片变实心」是可能的 | 改 mod 内容让它合规；别把 mod 从校验里摘出去 |
 | 5 | `python tools/update_context.py` | 重算 `AI_CONTEXT.md` 的数字与附录 B（测试红时它会拒绝写） | 它会告诉你是哪个数字对不上；跑第 3 步修完再跑 |
 
 **补充约定**
@@ -153,6 +154,7 @@ python tools/update_context.py
 
 | 想加 | 看哪儿 | 写几行 |
 |---|---|---|
+| **先看我这个 mod 合不合规** | `python tools/validate_space.py --mods-dir mods`（或 `--mods 某mod.json`）：把 mod 合并进基础内容再校验。**别直接把 mod 文件当成内容传给校验器** —— 那样只会得到「场景 0 / 错误 0」的假通过 | 一条命令 |
 | 一个新房间 / 人 / 对话 / 终端 | `tools/starter_mod.json`（能跑的起手 mod）；`python tools/scaffold_mod.py 我的房间 --id my_room` 生成骨架 | 一个 JSON 块 |
 | 一整个新世界（多站点 / 多地图） | `python tools/gen_world.py --seed 我的世界 --sites 24`（产物是标准 mod） | 一条命令 |
 | 一段可复用的效果组合 | `content/space.json` 的 `macros`（`_howToAdd` + `_example`） | 1 条 |

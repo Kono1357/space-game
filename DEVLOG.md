@@ -1,8 +1,8 @@
 # 开发进度 / 交接文档
 
 > 给「下一个对话里的我」看：做到哪了、下一步做什么、怎么验证、别踩哪些坑。
-> **本轮目标：按 VISION.md 第 6 节没做完的部分推进 —— 先补 mod 安全网（校验器要认 mod、要校验合并后的结果），再做命名体系、地形生态、战略层死数据、mod 生态。**
-> 最后更新：2026-10-02（性能预算环境系数：让命令链在慢机器上不再卡死） | 原记录：2026-10-01（VISION 第 6 节：站点内容加深 + 战略层深化 + 三层生成 + 回程硬校验） | 原记录：2026-10-01（P0-P7 + 内容扩充 + 中央大厅 + 门加宽/固定视口/地图规则与生成器；内容版本 v1.6.0-text）
+> **本轮目标：按 VISION.md 第 6 节没做完的部分推进 —— 第 1 期 mod 安全网已完成（校验器看得懂 mod + 构建期闸门）；接着做命名体系、地形生态、战略层死数据、mod 生态。**
+> 最后更新：2026-10-02（第 1 期：mod 安全网 —— 校验器看得懂 mod、构建期闸门、抓出示例 mod 的真实违规） | 原记录：2026-10-02（性能预算环境系数：让命令链在慢机器上不再卡死） | 原记录：2026-10-01（VISION 第 6 节：站点内容加深 + 战略层深化 + 三层生成 + 回程硬校验） | 原记录：2026-10-01（P0-P7 + 内容扩充 + 中央大厅 + 门加宽/固定视口/地图规则与生成器；内容版本 v1.6.0-text）
 >
 > **接手入口 = `HANDOFF.md`**（框架 / 已有功能 / 未完成 / 改动记录，一页看清，下一个 AI 先读它）。
 > 另有给 AI 读的**项目说明书** `AI_CONTEXT.md`（含可直接粘贴的精简上下文包）；本文件管「进度与下一步」；玩法设计在 `DESIGN.md`。
@@ -485,6 +485,51 @@ validate 0/0；地图规则 25 图 0/0；生成器自检与真机三档全过；
 - 一次性代价：产物从 CRLF 翻成 LF，本次提交里 `space-text.html` 会显示为整个文件重写（3977 行）；此后任何机器上构建都是同一串字节。
 
 **验证**：`node --check` 三个引擎文件 OK；`build_space.py` exit 0；`node tests/run_all.js` **607 / 0**（性能预算已缩放，⚠ 如期出现在链的输出里）；`validate_space.py` 0 错 0 警；`map_rules.py` 25 个场景全过；`gen_maps --selftest 10` 60 张图 0 失败；`gen_maps --wire-selftest 5` 15 张图 0 失败；`gen_world --selftest` OK；`update_context.py` 复跑幂等（「已是最新，仓库未变」）。整链耗时 101s。
+
+## mod 安全网：校验器终于看得懂 mod（第 1 期，2026-10-02）
+
+### 为什么这是当前最该修的东西
+
+`tools/validate_space.py` 以前**只吃一个文件、独立校验**。拿一个 mod 喂它：
+
+```
+$ python tools/validate_space.py mods/example_mod/mod.json
+  场景 0 / 人 0 / 对话 0 / 物件 0 / 视图 0 / 日程 0
+  错误 0 / 警告 0          ← 官方示例 mod，静默假通过
+```
+
+而 mod 是**被合并进产物**的。于是「玩家改坏了 mod → 校验器说没问题 → 进游戏地图整片变实心」是一条完全通畅的路。**低门槛 CDDA 路线的致命伤不在功能，在这里** —— 门槛低但踩雷没人拦，比门槛高更劝退。
+
+### 做了什么
+
+- **`tools/space_merge.py`（新）**：把引擎的合并语义（`normalizeSpace` / `applyMod` / `mergeBlock` / `mergeAtPath` / `patchItem` / `deepMerge`）逐条移植到 Python，纯标准库、不需要 Node。`SPACE_BLOCKS` / `NESTED_BLOCKS` **从 `engine/space-core.js` 里读**，不另抄一份 —— 加了新块只要改引擎，Python 自动跟上；解析不出来直接报错，绝不静默兜底。
+- **`tools/validate_space.py` 改造**：
+  - 新增 `--mods <文件...>` / `--mods-dir <目录>`：合并之后再校验，**结论以合并结果为准**；合并期问题（撞 id、没声明 `allowRemove` 就删、条目缺 id）也进结论；
+  - **把 mod 当内容传进来会明确拒绝**（exit 2 + 正确用法），不再输出「场景 0 / 错误 0」冒充通过；
+  - 老用法（不带参数 / 传一个内容文件）**逐字不变**，命令链第 4 步照旧。
+- **`build_space.py` 加构建期闸门**：合并 mod 后校验，有错误 **exit 1 且不写产物**（闸在写文件之前，验证过产物 mtime 不动）。逃生口 `--no-check`。`CONTRIBUTING` 第 2 步本来就写着「看报错：…校验器报了错误」，只是以前没接上。
+- **`tools/map_rules.py` 两个失真修复**（都是为了「规则看到的就是引擎看到的」）：
+  1. **`grid_of` 不看 `tileEdits`**：mod 用 `tileEdits` 凿出来的门，在规则眼里仍是一堵墙。实测 `mods/example_mod` 在 `station_corridor (0,6)` 凿的门，引擎 `isPassable()` 返回 **true**，规则却报「R4 出口不可走 (0,6)」——**对完全合法的内容报假错**。现在新增 `eff_tiles()` 按引擎 `compileScene` 的口径把编辑盖上去（含 `resolve_ch`、越界跳过）。
+  2. **可走性判定与引擎相反**：规则用 `bool(entry['passable'])`，引擎用 `pass = 0 if (d.passable === false or d.solid) else 1`。对「既没写 `passable` 也没写 `solid`」的图例条目，引擎说可走、规则说墙。新增 `entry_passable()` 照引擎抄（含 `=== false` 的严格比较）。
+  3. `scene_exits(scene, space)` 也跟着用 `eff_tiles`，否则 `tileEdits` 写进去的出口字符会被漏掉。
+- **三条新测试，护住上面这些承诺**：
+  - `tests/test_merge_parity.js`（26 项）：20 个语义角落各一个 mod（四种 `_op`、`_append`、`defaultOp`、嵌套块 4 种、块内子键、`_howToAdd`/`_example`、白名单外自定义块、priority/order、config/palette/presets、缺 id、删不存在的 id、扁平 mod 形状、未知 `_op`），加真实内容 + 两个真 mod 的全量合并，**两边结果的 JSON 必须逐字节一致**；另有反向保险确认比较器抓得住人为篡改。
+  - `tests/test_maprules_parity.js`（11 项）：**90 个场景 / 135160 格逐格比对**规则矩阵与引擎编译出来的 `pass`，并专门钉死 `tileEdits` 那个坑，再用「拆掉 tileEdits 应变回墙」做反向保险。
+  - `tests/test_validate.js`（29 项）：假通过必须死（exit 2）、`--mods` 合并后校验、坏 mod 报错 exit 1、构建期闸门不写产物、撞 id 要可见、参数错误要说清楚。
+
+### 顺带抓出来的真问题（以前谁都看不见）
+
+校验器一旦看得见 mod，**第一件事就是报出了官方示例 mod 的问题**：
+
+- `mods/example_mod/mod.json` 的 `mod_observatory` 是 **30×12**，而 R9 要求宽 44~104、高 14~36 且都是偶数 —— 违规；
+- 它的门只有 **1 格**（`+` 在第 6 行右边框），而 R2 要求门洞 **>= 3 格**；基础内容里每个门都是 `##+++##`（README 第 7.5 节和 `station_corridor (0,18)` 都能对上），示例 mod 没照这个约定写；
+- 它给 `station_corridor` 用 `_append` 凿的门也只有 1 格高 —— 同一处违规。
+
+已修：观景台改成 **44×14**、门开到右边框 **3 格**（第 5/6/7 行），中央大厅的门凿成 **(0,5)(0,6)(0,7) 三格**，并给场景加了 `_howToAdd` 说明门必须 3 格。修完 `--mods-dir mods` 恢复 **0 错 0 警**。
+
+> 这条值得记：示例 mod 是发给每个新手的模板，它自己违规 = 教错所有人。以前校验器看不见 mod，所以这个错误一直没有出口。
+
+**验证**：`node tests/run_all.js` **673 / 0**（原 607 + 新增 66：merge_parity 26 / maprules_parity 11 / validate 29）；`validate_space.py` 基础内容 0 错 0 警、`--mods-dir mods` 合并后 0 错 0 警；`build_space.py` exit 0（新增「校验 合并 2 个 mod 后：错误 0 / 警告 0」一行）；带坏 mod 构建 exit 1 且产物未被写；`map_rules.py` 25 场景全过；`gen_maps --selftest 10` 60 张图 0 失败；`--wire-selftest 5` 15 张图 0 失败；`gen_world --selftest` OK。整链 125s。
 
 ## 0 一句话现状
 

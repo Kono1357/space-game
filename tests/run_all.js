@@ -1,6 +1,8 @@
 /* 跑全部回归测试 */
 var cp = require('child_process'), path = require('path');
-var files = ['test_space.js', 'test_world.js', 'test_arch.js', 'test_text.js', 'test_shell.js', 'test_build.js'];
+var files = ['test_space.js', 'test_world.js', 'test_arch.js', 'test_text.js', 'test_shell.js', 'test_build.js',
+             /* 这三条要 spawn Python：校验器的可信度全靠它们 —— 规则和引擎必须看到同一张图 */
+             'test_merge_parity.js', 'test_maprules_parity.js', 'test_validate.js'];
 var total = 0, bad = 0, scaled = 0;
 files.forEach(function (f) {
   console.log('\n########## ' + f + ' ##########');

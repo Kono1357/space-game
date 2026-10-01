@@ -1,24 +1,46 @@
 # -*- coding: utf-8 -*-
 """不开浏览器校验空间层内容（纯数据层，不需要 Node）。
 
-用法:  python tools/validate_space.py content/space.json
-       python tools/validate_space.py            （默认 content/space.json）
+用法:
+  python tools/validate_space.py                           校验 content/space.json
+  python tools/validate_space.py 某内容.json                校验指定文件
+  python tools/validate_space.py --mods m1.json m2.json     先合并再校验（重点）
+  python tools/validate_space.py --mods-dir mods            同上，自动扫 mods/*/
+  python tools/validate_space.py 基础.json --mods m.json    指定基础内容
 
 管什么：
-   每个块的 id 不重复
-   场景尺寸 / 行宽 / 出口指向 / legend 键是不是单字符
-   地图里出现的每个字符都能在「有效图例」里查到
-    （有效图例 = config.defaultLegend 垫底 + scene.legend 覆盖）
+    每个块的 id 不重复
+    场景尺寸 / 行宽 / 出口指向 / legend 键是不是单字符
+    地图里出现的每个字符都能在「有效图例」里查到
+     （有效图例 = config.defaultLegend 垫底 + scene.legend 覆盖）
     漏写的字符会被引擎当墙编译，整张图可能变成实心，这是踩过的大坑
-   日程点、props、出口 at 的坐标在范围内
-   对话的 entry / goto / next 都有落点
-地图规则：门洞 >= 3 格、边框不漏、四角不开口、单连通、开敞率 >= 55%（tools/map_rules.py，
-          和随机地图生成器 tools/gen_maps.py 共用同一套）
+    日程点、props、出口 at 的坐标在范围内
+    对话的 entry / goto / next 都有落点
+    地图规则：门洞 >= 3 格、边框不漏、四角不开口、单连通、开敞率 >= 55%（tools/map_rules.py，
+           和随机地图生成器 tools/gen_maps.py 共用同一套）
+
+**为什么必须支持 mod（2026-10-02 补）**：
+    以前这个脚本只吃一个文件、独立校验。拿一个 mod 文件喂它，它找不到 scenes/npcs，
+    于是一路输出「场景 0 / 人 0 / 对话 0 …… 错误 0 / 警告 0」——**静默假通过**。
+    玩家改坏了 mod，校验器说没问题，进游戏才发现地图整片变实心。
+    低门槛路线的致命伤不在功能，在这里。
+    现在：① 传 mod 文件进来会被识别出来并明确拒绝（不再假通过）；
+         ② --mods / --mods-dir 会把 mod 按引擎的语义合并进基础内容，**校验合并后的结果**。
+    合并语义由 tools/space_merge.py 提供，它和引擎逐字节一致
+    （由 tests/test_merge_parity.js 守着）。
+
 不管什么：引擎的真编译结果（NPC 寻路、交互）  那些看 node tests/test_world.js
   node tests/test_world.js   （世界层回归：房间连通 / 门能走通 / 终端能开 ）
 """
-import io, json, sys, collections
+import io, json, os, sys, collections
 sys.dont_write_bytecode = True    # 别在仓库里生成 __pycache__
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
+if HERE not in sys.path:
+    sys.path.insert(0, HERE)
+
+DEFAULT_SPEC = os.path.join(ROOT, 'content', 'space.json')
 
 def aslist(b):
     if b is None: return []
@@ -26,8 +48,19 @@ def aslist(b):
     if isinstance(b, dict): return b.get('list') or b.get('options') or b.get('items') or []
     return []
 
-def main(path):
-    sp = json.load(io.open(path, encoding='utf-8-sig'))   # 带 BOM 也吃得下
+
+def looks_like_mod(sp):
+    """mod 文件长这样：有 manifest / data，但没有 scenes。
+    用来把「把 mod 当内容传进来」这种误用挡掉 —— 以前它会静默假通过。"""
+    if not isinstance(sp, dict):
+        return False
+    if 'scenes' in sp:
+        return False
+    return isinstance(sp.get('manifest'), dict) or isinstance(sp.get('data'), dict)
+
+
+def validate(sp, label):
+    """校验一份**已经合并好**的内容。返回 (errs, warns, stats)"""
     errs, warns = [], []
     scenes = {s['id']: s for s in aslist(sp.get('scenes')) if isinstance(s, dict) and 'id' in s}
     npcs   = {n['id']: n for n in aslist(sp.get('npcs'))   if isinstance(n, dict) and 'id' in n}
@@ -148,9 +181,6 @@ def main(path):
 
     # 地图规则（和 tools/gen_maps.py 共用一套）：门宽 / 边框 / 四角 / 连通 / 开敞率
     try:
-        import os as _os
-        _here = _os.path.dirname(_os.path.abspath(__file__))
-        if _here not in sys.path: sys.path.insert(0, _here)
         import map_rules as _MR
         _res = _MR.check_all(sp)
         for _sid, _msgs in _res['errors'].items():
@@ -160,13 +190,87 @@ def main(path):
     except Exception as _e:
         warns.append('地图规则检查没跑起来：%s' % _e)
 
-    print('文件 %s' % path)
+    stats = {'场景': len(scenes), '人': len(npcs), '对话': len(dlg),
+             '物件': len(inter), '视图': len(views), '日程': len(sch)}
+    return errs, warns, stats
+
+
+def run(base_path, mod_paths, mods_dir, quiet=False):
+    """读基础内容 ->（可选）合并 mod -> 校验 -> 打印。返回退出码。"""
+    sp = json.load(io.open(base_path, encoding='utf-8-sig'))   # 带 BOM 也吃得下
+
+    if looks_like_mod(sp):
+        # 以前这里会输出「场景 0 …… 错误 0 / 警告 0」的假通过，现在明确拒绝。
+        sys.stderr.write(
+            '× %s 看起来是一个 **mod 文件**（有 manifest/data，没有 scenes），不是基础内容。\n'
+            '  拿它单独校验只会得到「场景 0 / 错误 0」的假通过，什么都验不出来。\n'
+            '  正确用法：python tools/validate_space.py --mods %s\n'
+            '  （它会把这个 mod 合并进 content/space.json，再校验合并后的结果）\n'
+            % (os.path.relpath(base_path, ROOT), os.path.relpath(base_path, ROOT)))
+        return 2
+
+    paths = list(mod_paths or [])
+    report = None
+    if mods_dir or paths:
+        import space_merge
+        if mods_dir:
+            if not os.path.isdir(mods_dir):
+                sys.stderr.write('× 目录不存在：%s\n' % mods_dir); return 2
+            paths = space_merge.find_mods(mods_dir) + paths
+        if not paths:
+            sys.stderr.write('× %s 里没找到任何 mod（认 mod.json / manifest.json）\n' % mods_dir); return 2
+        mods, trace = [], []
+        for p in paths:
+            try:
+                mods.append(space_merge.load_mod(p))
+            except Exception as e:
+                sys.stderr.write('× 读不了 mod %s：%s\n' % (p, e)); return 2
+        sp, report = space_merge.merge_all(sp, mods, trace=trace)
+        if not quiet:
+            print('合并 %d 个 mod：%s' % (len(report['mods']), [m['id'] for m in report['mods']]))
+            for t in trace:
+                print('   %-18s %-16s %+d -> %d' % (t['mod'], t['block'], t['delta'], t['total']))
+
+    errs, warns, stats = validate(sp, base_path)
+    if report:
+        # 合并期的问题（撞 id / 没声明 allowRemove 就删 / 条目没 id）也要算进结论，
+        # 否则「校验通过」会漏掉 mod 层最常踩的坑。
+        errs = list(report['errors']) + errs
+        warns = list(report['warnings']) + warns
+
+    print('文件 %s' % os.path.relpath(base_path, ROOT))
     print('  场景 %d / 人 %d / 对话 %d / 物件 %d / 视图 %d / 日程 %d'
-          % (len(scenes), len(npcs), len(dlg), len(inter), len(views), len(sch)))
+          % (stats['场景'], stats['人'], stats['对话'], stats['物件'], stats['视图'], stats['日程']))
     for e in errs: print('  [错误] ' + e)
     for w2 in warns: print('  [警告] ' + w2)
     print('  错误 %d / 警告 %d' % (len(errs), len(warns)))
     return 1 if errs else 0
 
+
+def main(argv):
+    base_path, mod_paths, mods_dir, quiet = DEFAULT_SPEC, [], None, False
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a == '--mods':
+            i += 1
+            while i < len(argv) and not argv[i].startswith('--'):
+                mod_paths.append(argv[i]); i += 1
+            continue
+        if a == '--mods-dir':
+            i += 1
+            mods_dir = argv[i] if i < len(argv) else None
+            i += 1
+            continue
+        if a == '--quiet':
+            quiet = True; i += 1; continue
+        if a.startswith('--'):
+            sys.stderr.write('× 未知参数 %s\n用法见文件头\n' % a); return 2
+        base_path = a; i += 1
+    if not os.path.isfile(base_path):
+        sys.stderr.write('× 文件不存在：%s\n' % base_path); return 2
+    return run(base_path, mod_paths, mods_dir, quiet)
+
+
 if __name__ == '__main__':
-    sys.exit(main(sys.argv[1] if len(sys.argv) > 1 else 'content/space.json'))
+    sys.exit(main(sys.argv[1:]))

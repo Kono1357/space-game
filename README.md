@@ -151,14 +151,24 @@ space/
     run_all.js            跑全部回归
     test_space.js         内核：移动 / 日程 / 对话 / 事件 / 存档 / 渲染合成 / mod 合并
     test_world.js         世界层：图例覆盖 / 房间连通 / 门能走通 / 终端能开 / 对话每个选项 / 教学
+    test_arch.js          架构：块登记表逐个实测 / 四种 _op / 词表一致 / 存档往返 / 全图寻路 / 性能预算
     test_text.js          ASCII 映射 / 文本输出 / 自适应字号（假 DOM）
+    test_shell.js         外壳：按键 / F3 / 鼠标寻路 / 存档桥 / F2 面板 / 内核桥
     test_build.js         产物逐块语法校验 + 「产物是不是刚构建过的」
+    test_merge_parity.js  Python 合并器 vs 引擎合并语义（同一批 mod 喂两边比 JSON）
+    test_maprules_parity.js  规则矩阵 vs 引擎编译结果（90 场景逐格比对）
+    test_validate.js      校验器：看得懂 mod、不再假通过、坏 mod 会被抓住
+    perf_budget.js        性能预算的环境系数（慢机器用，见 CONTRIBUTING「补充约定」）
   tools/
     starter_mod.json      起手 mod：能跑的最小房间（F2 -> 填入示例模板）
     scaffold_mod.py       生成新 mod 骨架（房间+门+人+对话+终端+宏+钩子+私有块）
     preview.js            在终端里打出画面（坐标现算，改地图不会坏）
     shot.js               用 Edge/Chrome headless 截一张彩色 PNG（看调色板 / 轮廓 / 区域地板）
-    validate_space.py     不开浏览器校验内容（纯数据层）
+    validate_space.py     不开浏览器校验内容（纯数据层；--mods / --mods-dir 可合并后校验）
+    space_merge.py        把「基础内容 + mod」合并成最终内容（和引擎逐字节一致）
+    map_rules.py          地图规则 R1~R13（--dump-pass 可导出可走矩阵给测试比对）
+    gen_maps.py           随机地图生成器（5 原型，确定性）
+    gen_world.py          世界生成器（一个 seed 一个宇宙，产物是标准 mod）
 ```
 
 ## 5 开放契约
@@ -341,6 +351,32 @@ python tools/gen_maps.py --check-engine <file>   # 拿引擎真跑：门能不�
 `--selftest` 会把生成的每一张图丢回规则里验一遍，不合规直接失败。
 `python tools/validate_space.py` 也已经把 R1~R11 并进去了。
 
+**校验要包含 mod（2026-10-02 补的一道闸）**：
+
+```bash
+python tools/validate_space.py --mods-dir mods        # 把 mods/ 全并进来再校验
+python tools/validate_space.py --mods 某个mod.json     # 只并某一个
+```
+
+以前校验器只吃 `content/space.json`、**看不见 mod**：拿一个 mod 文件喂它，它会一路输出
+「场景 0 / 人 0 / 对话 0 …… 错误 0 / 警告 0」——**静默假通过**。玩家改坏了 mod，
+校验器说没问题，进游戏才发现地图整片变实心。现在：
+
+- 传 mod 文件当内容 → 明确拒绝并告诉你正确用法（不再假通过）；
+- `--mods` / `--mods-dir` → 按引擎的语义合并（append / patch / replace / remove、
+  `_append`、`priority`、嵌套块…全部一致），**校验合并后的结果**；
+- mod 之间撞 id、没声明 `allowRemove` 就删除、条目缺 id 这类合并期问题也进结论；
+- **`python build_space.py` 会自动跑这一步，有错误就不出产物**（逃生口 `--no-check`）。
+
+合并语义由 `tools/space_merge.py` 实现，它和引擎逐字节一致 —— 这件事由
+`tests/test_merge_parity.js`（同一批 mod 喂两边、比 JSON）和
+`tests/test_maprules_parity.js`（90 个场景逐格比对规则矩阵与引擎编译结果）守着。
+没有这两条，校验器的结论就只是「另一个程序的看法」而已。
+
+**门的写法**：边框上的门要开**连着的 3 格**（基础内容里每个门都是 `##+++##`）。
+只开 1 格会被判 R2「门太窄」—— 校验器以前看不见 mod，这个坑没人提醒，
+`mods/example_mod` 就踩了（已修）。
+
 ## 7.6 事件  功能文本（情报板）
 
 事件改的是 `counters` / `flags` / `world.pending`；**这些改动现在都能在终端里看见**，终端也能反过来触发事件。
@@ -453,6 +489,7 @@ node tests/run_all.js           # 607 项，全绿
 
 ```bash
 python tools/validate_space.py                       # 纯数据层：id / 尺寸 / 图例覆盖 / 引用 / 坐标
+python tools/validate_space.py --mods-dir mods       # 把 mod 合并进来再校验（重点）
 node tools/preview.js 100 30                         # 在终端里把画面打出来看
 ```
 
