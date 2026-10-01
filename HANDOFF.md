@@ -3,7 +3,7 @@
 > **下一个 AI：先读这一份。** 它按「框架 / 已有功能 / 未完成 / 改过什么」四块写清楚，
 > 读完你就知道项目在哪、能跑什么、下一步干什么。其它文档按需再查（见下面「文档地图」）。
 >
-> 更新时间：2026-10-02　|　内容版本 `1.6.0-text`　|　基线：`node tests/run_all.js` **730 项全绿**、`validate_space.py` **0 错 0 警**
+> 更新时间：2026-10-02　|　内容版本 `1.6.0-text`　|　基线：`node tests/run_all.js` **793 项全绿**、`validate_space.py` **0 错 0 警**
 
 ---
 
@@ -14,7 +14,7 @@ cd D:/大肥鱼工作区/朔/space
 
 python build_space.py              # 内容 + 引擎 -> 自包含 space-text.html（改内容或引擎后必跑）
                                    # 末尾会自动校验「合并 mod 之后」的内容，有错就不出产物
-node tests/run_all.js              # 回归：11 个文件 / 730 项
+node tests/run_all.js              # 回归：12 个文件 / 793 项
 python tools/validate_space.py      # 内容层静态校验（要 0 错 0 警）
 python tools/validate_space.py --mods-dir mods   # 把 mod 合并进来再校验（诊断 mod 用）
 python tools/update_context.py      # 重算 AI_CONTEXT.md 的数字与文件树（build 会自动跑一次）
@@ -147,7 +147,7 @@ engine/space-textshell.js
 
 | 项 | 状态 |
 |---|---|
-| 回归测试 | `node tests/run_all.js`  **730 项全绿**（space 101 / world 206 / arch 100 / text 30 / shell 92 / build 78 / merge_parity 28 / maprules_parity 11 / validate 29 / names 31 / terrain 24）|
+| 回归测试 | `node tests/run_all.js`  **793 项全绿**（space 101 / world 206 / arch 100 / text 30 / shell 92 / build 78 / merge_parity 28 / maprules_parity 11 / validate 29 / names 31 / terrain 24 / strategy 63）|
 | 命名与文化 | `content/space.json` 的 `nameCultures`（7 套语言覆盖 10 个派系）+ `tools/gen_world.py` 的 `load_cultures` / `place_name` / `person_name`；类型词按站点种类挑；生成名不与手写层 48 个地名撞车 |
 | 内容校验 | `python tools/validate_space.py`  0 错 0 警；`--mods-dir mods` 合并后仍是 0 错 0 警 |
 | 校验器可信度 | `tools/space_merge.py`（Python 侧合并，与引擎逐字节一致）+ `tests/test_merge_parity.js` / `test_maprules_parity.js`（90 场景 135160 格逐格比对） |
@@ -212,6 +212,7 @@ engine/space-textshell.js
 | 2026-10-01 | **数值出口二期 R4/R8**：舰队事件加「-1 舰队」代价选项 + `home_guard` 门槛（10 条模板对话）；研究终端加 4 条科技线（裂隙探测  初级净化/局部封印  区域净化，4 计数器 + 4 hook），星图净化/封锁/广域净化改由科技解锁；新增 `test_world` 9.11 节 15 项 | `content/space.json`、`tests/test_world.js`、`tools/browser_check.js`、`README.md`、`HANDOFF.md`、`DEVLOG.md`、`DESIGN.md`、`AI_CONTEXT.md` |
 | 2026-10-01 | **设计映射落地 R1/R2/R3/R5**：9 条胜负判定 hook + `end_game`；败北线 1215；深渊杂音 `random.table`；10 条遗迹事件各 +2 遗物 + 打捞 35% 出遗物；`pop` 变活计数器；星图/情报板/外交/档案各加终局动作；**修了 `morale` 不是活计数器导致误判败北的 bug**，并给 `deserialize` 加了计数器兜底补齐 | `content/space.json`、`engine/space-core.js`、`tests/test_world.js`、`tests/test_space.js`、`tools/browser_check.js` |
 | 2026-10-01 | **设计文档补齐**：`DESIGN.md` 第 2/3 段落盘（张力曲线 / 深渊 3 脚本 / 20 块矩阵 / 反馈节奏 / 8 个困难选择 / R1R13 映射 / 自检）| `DESIGN.md`、`HANDOFF.md`、`DEVLOG.md` |
+| 2026-10-02 | **战略层活起来**：新增词 `counter_cmp`（比两个计数器）与 `galaxy_get`（读节点字段）；新增 6 个视图提供者把「只登记、从没被读过」的 colonies / fleetModules / internalPolitics / planetTypes / diplomacy.actions 读出来；战略台终端（指挥中心 &）+ 六个看板；**舰队派遣**（三目标、真扣舰队、当场比大小、胜负各有后果）；殖民地按天结算；外交态度做成活计数器并驱动 4 条事件；`mis_campaign` 战役任务 | `engine/space-core.js`、`content/space.json`、`tests/test_strategy.js`、`README.md` |
 | 2026-10-02 | **地形连贯性与群系**：野外地图从白噪声改成值噪声 + 分形叠加（`_h2`/`value_noise`/`fbm`），8 个群系 `BIOMES`（blobs/cracks/plateaus/ruins 四种图案 + 目标开敞率 + 材质），18 种行星类型全部映射到群系，地下层跟行星走；新增预设 `liquid`(~) / `flora`(%)；`break_big_masses()` 让生成器自己守 R6。**顺带修 `map_rules` 的有效图例失真**（原来二选一，引擎是深度合并 —— 两边对同一格给出相反结论）；**抓到把 `~`/`%` 加进 `defaultLegend` 会深合并改坏手写地图的坑**（中央大厅的通道变成墙）| `tools/gen_maps.py`、`tools/gen_world.py`、`tools/map_rules.py`、`content/space.json`、`tests/test_terrain.js`、`README.md` |
 | 2026-10-02 | **命名与文化体系**：名字不再来自一个全局音节池（`unique_name` 的签名里没有「谁的站点」）。新增 `nameCultures` 内容块（7 套语言覆盖 10 个派系）、`gen_world` 的 `load_cultures`/`place_name`/`person_name`、`KIND_SUF`（类型词按站点种类挑）；生成地名先避开手写层 48 个地名；修 `hub_cell()` 只扫内部导致**每次都走兜底 (1,1)** 的 bug（这也是产物漂移的根因）；重生成 `mods/generated_world/mod.json` 并验过可复现 | `content/space.json`、`tools/gen_world.py`、`engine/space-core.js`、`mods/generated_world/mod.json`、`tests/test_names.js`、`tests/fixtures/`、`README.md` |
 | 2026-10-02 | **mod 安全网**：校验器以前只吃 `content/space.json`、**看不见 mod**（拿 mod 文件喂它 → 「场景 0 / 错误 0」静默假通过）。新增 `tools/space_merge.py`（引擎合并语义的 Python 实现，与引擎逐字节一致）、`validate_space.py --mods/--mods-dir`（合并后校验，传 mod 当内容会明确拒绝）、`build_space.py` 构建期闸门（有错不出产物）。顺带修 `map_rules.py` **不看 tileEdits**（对合法 mod 报 R4 假错）和「没写 passable 就当墙」（与引擎钝感相反）。**抓出并修掉 `mods/example_mod` 的 3 处真实违规**（观景台 30x12 违反 R9、两个门只有 1 格违反 R2） | `tools/space_merge.py`、`tools/validate_space.py`、`tools/map_rules.py`、`build_space.py`、`mods/example_mod/mod.json`、`tests/test_merge_parity.js`、`tests/test_maprules_parity.js`、`tests/test_validate.js` |
@@ -230,7 +231,7 @@ engine/space-textshell.js
 
 ## 5 接手第一步（checklist）
 
-1. **跑一遍基线**：`python build_space.py`  `node tests/run_all.js`  `python tools/validate_space.py`。要看到 **730 / 0** 与 **0 错 0 警**；不绿先修，别往下做。
+1. **跑一遍基线**：`python build_space.py`  `node tests/run_all.js`  `python tools/validate_space.py`。要看到 **793 / 0** 与 **0 错 0 警**；不绿先修，别往下做。
 2. **读 `DESIGN.md` 第 1 段**（它是玩法方向） 如果那一节还标着「待确认」，先确认或直接续写第 2 段。
 3. **要动工程**：先看 `CONTRIBUTING.md` 的必跑命令与「改动类型  更新哪份文档」；改内容或引擎**必须重新 build**。
 4. **别碰**：`zhanyi.json`（一个字节都不许动）；`AI_CONTEXT.md` 里的数字（交给 `tools/update_context.py`）。

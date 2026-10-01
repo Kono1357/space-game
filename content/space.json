@@ -297,7 +297,7 @@
     },
     "lit": true,
     "tiles": [
-     "#+++####################################################################",
+     "#+++&###################################################################",
      "#......................................................................#",
      "#......................................................................#",
      "#......................................................................#",
@@ -353,6 +353,9 @@
      },
      "v": {
       "interactable": "intel_terminal"
+     },
+     "&": {
+      "interactable": "strategy_table"
      }
     },
     "exits": [
@@ -2907,6 +2910,23 @@
      }
     ],
     "desc": "待处理的报告、事件链进度和全站态势都在这儿。"
+   },
+   {
+    "id": "strategy_table",
+    "name": "战略台",
+    "symbol": "&",
+    "color": "accent",
+    "bg": "term_bg",
+    "passable": false,
+    "auto": false,
+    "priority": 22,
+    "onInteract": [
+     {
+      "type": "open_view",
+      "view": "strategy_hub"
+     }
+    ],
+    "desc": "舰队、殖民地、派别、星图、行星志的账都在这。"
    }
   ]
  },
@@ -21736,6 +21756,233 @@
       "action": "close_dialogue"
      }
     }
+   },
+   {
+    "id": "dlg_ev_rel_veil_warm",
+    "npcId": "npc_diplomat",
+    "entry": "root",
+    "nodes": {
+     "root": {
+      "text": "帷幕公约送来的信只有一句话：你们最近的举动，我们看见了。",
+      "options": [
+       {
+        "text": "回一封，说我们愿意谈。（态度 +1）",
+        "effects": [
+         {
+          "type": "counter_add",
+          "counter": "rel_veil_pact",
+          "delta": 1
+         },
+         {
+          "type": "counter_add",
+          "counter": "morale",
+          "delta": 2
+         },
+         {
+          "type": "log",
+          "text": "【外交】帷幕公约的使节留了下来。",
+          "level": "good"
+         }
+        ],
+        "goto": "end"
+       },
+       {
+        "text": "放着不回。",
+        "effects": [
+         {
+          "type": "counter_add",
+          "counter": "rel_veil_pact",
+          "delta": -1
+         }
+        ],
+        "goto": "end"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "dlg_ev_rel_iron_war",
+    "npcId": "npc_diplomat",
+    "entry": "root",
+    "nodes": {
+     "root": {
+      "text": "铁合唱把三座锻炉的火全灭了 —— 那是他们开会的意思。会议的结果是：不再向索尔供货。",
+      "options": [
+       {
+        "text": "那我们自己炼。（合金 -20，民情 -3）",
+        "effects": [
+         {
+          "type": "counter_add",
+          "counter": "alloy",
+          "delta": -20
+         },
+         {
+          "type": "counter_add",
+          "counter": "morale",
+          "delta": -3
+         },
+         {
+          "type": "log",
+          "text": "【外交】铁合唱断供，合金价格飞涨。",
+          "level": "danger"
+         }
+        ],
+        "goto": "end"
+       },
+       {
+        "text": "派人去道歉。（舰队 -1）",
+        "effects": [
+         {
+          "type": "counter_add",
+          "counter": "fleets",
+          "delta": -1
+         },
+         {
+          "type": "counter_add",
+          "counter": "rel_iron_chorus",
+          "delta": 1
+         },
+         {
+          "type": "log",
+          "text": "【外交】道歉的船回来了，火重新点上了。",
+          "level": "warn"
+         }
+        ],
+        "goto": "end"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "dlg_ev_ops_backlash",
+    "npcId": "npc_fleet_commander",
+    "entry": "root",
+    "nodes": {
+     "root": {
+      "text": "你打掉的那个节点，本来是他们放东西的地方。现在东西挪到别处去了 —— 而且它在往这边挪。",
+      "options": [
+       {
+        "text": "把舰队收回来守索尔。（舰队 +1，污染 +1）",
+        "effects": [
+         {
+          "type": "counter_add",
+          "counter": "fleets",
+          "delta": 1
+         },
+         {
+          "type": "counter_add",
+          "counter": "pollution",
+          "delta": 1
+         },
+         {
+          "type": "counter_add",
+          "counter": "morale",
+          "delta": 2
+         },
+         {
+          "type": "flag_set",
+          "flag": "ops_backlash_seen"
+         },
+         {
+          "type": "log",
+          "text": "【深渊】舰队回防索尔轨道。",
+          "level": "warn"
+         }
+        ],
+        "goto": "end"
+       },
+       {
+        "text": "继续往外推。（民情 -4，污染 +2）",
+        "effects": [
+         {
+          "type": "counter_add",
+          "counter": "morale",
+          "delta": -4
+         },
+         {
+          "type": "counter_add",
+          "counter": "pollution",
+          "delta": 2
+         },
+         {
+          "type": "flag_set",
+          "flag": "ops_backlash_seen"
+         },
+         {
+          "type": "log",
+          "text": "【深渊】你把舰队留在外面。",
+          "level": "danger"
+         }
+        ],
+        "goto": "end"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "id": "dlg_ev_ops_campaign_done",
+    "npcId": "npc_fleet_commander",
+    "entry": "root",
+    "nodes": {
+     "root": {
+      "text": "三个节点都插上旗了。参谋部想开庆功会，我没批 —— 污染还在涨，而且深渊从来不吃亏。",
+      "options": [
+       {
+        "text": "把这三处的防御建起来。（合金 -30，民情 +6）",
+        "effects": [
+         {
+          "type": "counter_add",
+          "counter": "alloy",
+          "delta": -30
+         },
+         {
+          "type": "counter_add",
+          "counter": "morale",
+          "delta": 6
+         },
+         {
+          "type": "flag_set",
+          "flag": "campaign_secured"
+         },
+         {
+          "type": "log",
+          "text": "【战役】三个节点开始修防御工事。",
+          "level": "good"
+         }
+        ],
+        "goto": "end"
+       },
+       {
+        "text": "先记账，接着往外推。（污染 +3）",
+        "effects": [
+         {
+          "type": "counter_add",
+          "counter": "pollution",
+          "delta": 3
+         },
+         {
+          "type": "counter_add",
+          "counter": "morale",
+          "delta": -2
+         },
+         {
+          "type": "flag_set",
+          "flag": "campaign_pushed"
+         },
+         {
+          "type": "log",
+          "text": "【战役】舰队没有停。",
+          "level": "warn"
+         }
+        ],
+        "goto": "end"
+       }
+      ]
+     }
+    }
    }
   ]
  },
@@ -24844,6 +25091,1226 @@
       ]
      }
     ]
+   },
+   {
+    "id": "strategy_hub",
+    "title": "战略台",
+    "width": 78,
+    "sections": [
+     {
+      "title": " 战略台 ",
+      "lines": [
+       " 索尔议会能调的东西都在这里。",
+       " 以前这些数据只写在内容里，游戏里一个字都看不到 —— 现在它们有账可查了。"
+      ]
+     },
+     {
+      "title": " 一句话 ",
+      "provider": "situation"
+     }
+    ],
+    "actions": [
+     {
+      "text": "舰队名册",
+      "effects": [
+       {
+        "type": "open_view",
+        "view": "fleet_roster"
+       }
+      ]
+     },
+     {
+      "text": "殖民地看板",
+      "effects": [
+       {
+        "type": "open_view",
+        "view": "colony_board"
+       }
+      ]
+     },
+     {
+      "text": "内部派别",
+      "effects": [
+       {
+        "type": "open_view",
+        "view": "politics_board"
+       }
+      ]
+     },
+     {
+      "text": "外交态势",
+      "effects": [
+       {
+        "type": "open_view",
+        "view": "diplomacy_board"
+       }
+      ]
+     },
+     {
+      "text": "行星志",
+      "effects": [
+       {
+        "type": "open_view",
+        "view": "planet_guide"
+       }
+      ]
+     },
+     {
+      "text": "作战室（派舰队）",
+      "effects": [
+       {
+        "type": "open_view",
+        "view": "fleet_ops"
+       }
+      ]
+     },
+     {
+      "text": "关闭",
+      "effects": [
+       {
+        "type": "close_view"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "fleet_roster",
+    "title": "舰队名册",
+    "width": 78,
+    "sections": [
+     {
+      "title": " 在编舰队 ",
+      "provider": "fleets_live"
+     }
+    ],
+    "actions": [
+     {
+      "text": "返回战略台",
+      "effects": [
+       {
+        "type": "open_view",
+        "view": "strategy_hub"
+       }
+      ]
+     },
+     {
+      "text": "关闭",
+      "effects": [
+       {
+        "type": "close_view"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "colony_board",
+    "title": "殖民地看板",
+    "width": 78,
+    "sections": [
+     {
+      "title": " 殖民地 ",
+      "provider": "colonies_live"
+     },
+     {
+      "title": " 账 ",
+      "lines": [
+       " 人口、士气、口粮、矿石、防御每天结算一次；口粮见底士气就掉。"
+      ]
+     },
+     {
+      "title": " 活资源 ",
+      "provider": "situation"
+     }
+    ],
+    "actions": [
+     {
+      "text": "返回战略台",
+      "effects": [
+       {
+        "type": "open_view",
+        "view": "strategy_hub"
+       }
+      ]
+     },
+     {
+      "text": "关闭",
+      "effects": [
+       {
+        "type": "close_view"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "politics_board",
+    "title": "内部派别",
+    "width": 78,
+    "sections": [
+     {
+      "title": " 派别 ",
+      "provider": "politics_live"
+     }
+    ],
+    "actions": [
+     {
+      "text": "返回战略台",
+      "effects": [
+       {
+        "type": "open_view",
+        "view": "strategy_hub"
+       }
+      ]
+     },
+     {
+      "text": "关闭",
+      "effects": [
+       {
+        "type": "close_view"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "diplomacy_board",
+    "title": "外交态势",
+    "width": 78,
+    "sections": [
+     {
+      "title": " 态度 ",
+      "provider": "diplomacy_live"
+     },
+     {
+      "title": " 怎么改态度 ",
+      "lines": [
+       " 派使节 +1（4 天）· 粮食援助 +1（20 天口粮）· 合金援助 +1（40 单位）",
+       " 宣示或殖民别人看上的节点会让态度变差；开战直接掉到底。"
+      ]
+     },
+     {
+      "title": " 外交动作 ",
+      "provider": "diplomacy_actions"
+     }
+    ],
+    "actions": [
+     {
+      "text": "返回战略台",
+      "effects": [
+       {
+        "type": "open_view",
+        "view": "strategy_hub"
+       }
+      ]
+     },
+     {
+      "text": "关闭",
+      "effects": [
+       {
+        "type": "close_view"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "planet_guide",
+    "title": "行星志",
+    "width": 78,
+    "sections": [
+     {
+      "title": " 行星类型 ",
+      "provider": "planets_live"
+     },
+     {
+      "title": " 说明 ",
+      "lines": [
+       " 生成世界的站点按行星类型长地貌：火山行星的地下是熔岩沟，丛林是成片树丛。"
+      ]
+     }
+    ],
+    "actions": [
+     {
+      "text": "返回战略台",
+      "effects": [
+       {
+        "type": "open_view",
+        "view": "strategy_hub"
+       }
+      ]
+     },
+     {
+      "text": "关闭",
+      "effects": [
+       {
+        "type": "close_view"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "fleet_ops",
+    "title": "作战室",
+    "width": 78,
+    "sections": [
+     {
+      "title": " 你在哪 ",
+      "lines": [
+       " 我方在编舰队：{counters.fleets} 支　污染：{counters.pollution}　民情：{counters.morale}"
+      ]
+     },
+     {
+      "title": " 目标 ",
+      "lines": [
+       " 1. 裂隙-7（守备 2）— 深渊前哨，只有 2 支守备 —— 练兵的地方。  2. 铁砧（守备 3）— 铁合唱的锻炉星港，抢下来能补合金。  3. 裂隙-3（守备 4）— 深渊的运输枢纽，守备最厚，也最值钱。"
+      ]
+     },
+     {
+      "title": " 星图 ",
+      "provider": "galaxy_live"
+     },
+     {
+      "title": " 说明 ",
+      "lines": [
+       " 打之前先看守备：你派的 3 支和它的守备当场比大小，硬碰硬是打得赢才划算。",
+       " 打赢了节点归你、合金到手；打输了舰队折在里面，污染上升，深渊会记账。"
+      ]
+     }
+    ],
+    "actions": [
+     {
+      "text": "派 3 支舰队打 裂隙-7（守备 2）",
+      "condition": {
+       "type": "all",
+       "all": [
+        {
+         "type": "counter",
+         "counter": "fleets",
+         "op": ">=",
+         "value": 3
+        },
+        {
+         "type": "counter",
+         "counter": "ops_done_1",
+         "op": "==",
+         "value": 0
+        }
+       ]
+      },
+      "cost": {
+       "counter": "fleets",
+       "amount": 3
+      },
+      "effects": [
+       {
+        "type": "counter_set",
+        "counter": "ops_mine",
+        "value": 3
+       },
+       {
+        "type": "galaxy_get",
+        "node": "rift7",
+        "field": "fleets",
+        "counter": "ops_enemy"
+       },
+       {
+        "type": "counter_set",
+        "counter": "ops_target",
+        "value": 1
+       },
+       {
+        "type": "log",
+        "text": "【作战】三支舰队离开索尔轨道，前往 裂隙-7。",
+        "level": "warn"
+       },
+       {
+        "type": "open_view",
+        "view": "ops_battle_1"
+       }
+      ]
+     },
+     {
+      "text": "派 3 支舰队打 铁砧（守备 3）",
+      "condition": {
+       "type": "all",
+       "all": [
+        {
+         "type": "counter",
+         "counter": "fleets",
+         "op": ">=",
+         "value": 3
+        },
+        {
+         "type": "counter",
+         "counter": "ops_done_2",
+         "op": "==",
+         "value": 0
+        }
+       ]
+      },
+      "cost": {
+       "counter": "fleets",
+       "amount": 3
+      },
+      "effects": [
+       {
+        "type": "counter_set",
+        "counter": "ops_mine",
+        "value": 3
+       },
+       {
+        "type": "galaxy_get",
+        "node": "ironhold",
+        "field": "fleets",
+        "counter": "ops_enemy"
+       },
+       {
+        "type": "counter_set",
+        "counter": "ops_target",
+        "value": 2
+       },
+       {
+        "type": "log",
+        "text": "【作战】三支舰队离开索尔轨道，前往 铁砧。",
+        "level": "warn"
+       },
+       {
+        "type": "open_view",
+        "view": "ops_battle_2"
+       }
+      ]
+     },
+     {
+      "text": "派 3 支舰队打 裂隙-3（守备 4）",
+      "condition": {
+       "type": "all",
+       "all": [
+        {
+         "type": "counter",
+         "counter": "fleets",
+         "op": ">=",
+         "value": 3
+        },
+        {
+         "type": "counter",
+         "counter": "ops_done_3",
+         "op": "==",
+         "value": 0
+        }
+       ]
+      },
+      "cost": {
+       "counter": "fleets",
+       "amount": 3
+      },
+      "effects": [
+       {
+        "type": "counter_set",
+        "counter": "ops_mine",
+        "value": 3
+       },
+       {
+        "type": "galaxy_get",
+        "node": "rift3",
+        "field": "fleets",
+        "counter": "ops_enemy"
+       },
+       {
+        "type": "counter_set",
+        "counter": "ops_target",
+        "value": 3
+       },
+       {
+        "type": "log",
+        "text": "【作战】三支舰队离开索尔轨道，前往 裂隙-3。",
+        "level": "warn"
+       },
+       {
+        "type": "open_view",
+        "view": "ops_battle_3"
+       }
+      ]
+     },
+     {
+      "text": "关闭",
+      "effects": [
+       {
+        "type": "close_view"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "ops_battle_1",
+    "title": "作战：裂隙-7",
+    "width": 78,
+    "sections": [
+     {
+      "title": " 对阵 ",
+      "lines": [
+       " 目标 裂隙-7　深渊前哨，只有 2 支守备 —— 练兵的地方。",
+       " 我方投入 {counters.ops_mine} 支　敌方守备 {counters.ops_enemy} 支",
+       " 判定：我方 >= 敌方才能拿下。"
+      ]
+     }
+    ],
+    "actions": [
+     {
+      "text": "接战（我方不少于守备）",
+      "condition": {
+       "type": "counter_cmp",
+       "a": "ops_mine",
+       "b": "ops_enemy",
+       "op": ">="
+      },
+      "effects": [
+       {
+        "type": "galaxy_set",
+        "node": "rift7",
+        "owner": "player_remnant",
+        "fleets": 0,
+        "pollution_add": 1
+       },
+       {
+        "type": "counter_add",
+        "counter": "rel_abyss",
+        "delta": -1
+       },
+       {
+        "type": "counter_add",
+        "counter": "gw_wars",
+        "delta": 1
+       },
+       {
+        "type": "counter_add",
+        "counter": "gw_wars_ops",
+        "delta": 1
+       },
+       {
+        "type": "counter_set",
+        "counter": "ops_done_1",
+        "value": 1
+       },
+       {
+        "type": "counter_set",
+        "counter": "ops_mine",
+        "value": 0
+       },
+       {
+        "type": "counter_add",
+        "counter": "fleets",
+        "delta": 1
+       },
+       {
+        "type": "counter_add",
+        "counter": "alloy",
+        "delta": 15
+       },
+       {
+        "type": "counter_add",
+        "counter": "morale",
+        "delta": 3
+       },
+       {
+        "type": "log",
+        "text": "【作战】裂隙-7 打下来了。守备被清空，节点归索尔，回收合金 +15。",
+        "level": "good"
+       },
+       {
+        "type": "hint",
+        "text": "裂隙-7 归你了。深渊不会就这么算了。"
+       },
+       {
+        "type": "open_view",
+        "view": "ops_win_1"
+       }
+      ]
+     },
+     {
+      "text": "硬打（我方少于守备）",
+      "condition": {
+       "type": "counter_cmp",
+       "a": "ops_mine",
+       "b": "ops_enemy",
+       "op": "<"
+      },
+      "effects": [
+       {
+        "type": "galaxy_set",
+        "node": "rift7",
+        "fleets_add": -1,
+        "pollution_add": 2
+       },
+       {
+        "type": "counter_set",
+        "counter": "ops_mine",
+        "value": 0
+       },
+       {
+        "type": "counter_set",
+        "counter": "ops_enemy",
+        "value": 0
+       },
+       {
+        "type": "counter_add",
+        "counter": "morale",
+        "delta": -4
+       },
+       {
+        "type": "counter_add",
+        "counter": "pollution",
+        "delta": 2
+       },
+       {
+        "type": "log",
+        "text": "【作战】裂隙-7 的守备比预计的厚。三支舰队折在里面，只回来一条船。",
+        "level": "danger"
+       },
+       {
+        "type": "hint",
+        "text": "打不动。先攒舰队，或者换个软一点的目标。"
+       },
+       {
+        "type": "open_view",
+        "view": "ops_lose_1"
+       }
+      ]
+     },
+     {
+      "text": "撤退",
+      "effects": [
+       {
+        "type": "counter_add",
+        "counter": "fleets",
+        "delta": 2
+       },
+       {
+        "type": "counter_set",
+        "counter": "ops_mine",
+        "value": 0
+       },
+       {
+        "type": "counter_set",
+        "counter": "ops_enemy",
+        "value": 0
+       },
+       {
+        "type": "log",
+        "text": "【作战】在 裂隙-7 外围停住，掉头回来。三支出去，两支回来。",
+        "level": "warn"
+       },
+       {
+        "type": "hint",
+        "text": "撤退了。损失一支舰队的油料和补给。"
+       },
+       {
+        "type": "close_view"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "ops_battle_2",
+    "title": "作战：铁砧",
+    "width": 78,
+    "sections": [
+     {
+      "title": " 对阵 ",
+      "lines": [
+       " 目标 铁砧　铁合唱的锻炉星港，抢下来能补合金。",
+       " 我方投入 {counters.ops_mine} 支　敌方守备 {counters.ops_enemy} 支",
+       " 判定：我方 >= 敌方才能拿下。"
+      ]
+     }
+    ],
+    "actions": [
+     {
+      "text": "接战（我方不少于守备）",
+      "condition": {
+       "type": "counter_cmp",
+       "a": "ops_mine",
+       "b": "ops_enemy",
+       "op": ">="
+      },
+      "effects": [
+       {
+        "type": "galaxy_set",
+        "node": "ironhold",
+        "owner": "player_remnant",
+        "fleets": 0,
+        "pollution_add": 1
+       },
+       {
+        "type": "counter_add",
+        "counter": "rel_iron_chorus",
+        "delta": -2
+       },
+       {
+        "type": "counter_add",
+        "counter": "gw_wars",
+        "delta": 1
+       },
+       {
+        "type": "counter_add",
+        "counter": "gw_wars_ops",
+        "delta": 1
+       },
+       {
+        "type": "counter_set",
+        "counter": "ops_done_2",
+        "value": 1
+       },
+       {
+        "type": "counter_set",
+        "counter": "ops_mine",
+        "value": 0
+       },
+       {
+        "type": "counter_add",
+        "counter": "fleets",
+        "delta": 1
+       },
+       {
+        "type": "counter_add",
+        "counter": "alloy",
+        "delta": 15
+       },
+       {
+        "type": "counter_add",
+        "counter": "morale",
+        "delta": 3
+       },
+       {
+        "type": "log",
+        "text": "【作战】铁砧 打下来了。守备被清空，节点归索尔，回收合金 +15。",
+        "level": "good"
+       },
+       {
+        "type": "hint",
+        "text": "铁砧 归你了。深渊不会就这么算了。"
+       },
+       {
+        "type": "open_view",
+        "view": "ops_win_2"
+       }
+      ]
+     },
+     {
+      "text": "硬打（我方少于守备）",
+      "condition": {
+       "type": "counter_cmp",
+       "a": "ops_mine",
+       "b": "ops_enemy",
+       "op": "<"
+      },
+      "effects": [
+       {
+        "type": "galaxy_set",
+        "node": "ironhold",
+        "fleets_add": -1,
+        "pollution_add": 2
+       },
+       {
+        "type": "counter_set",
+        "counter": "ops_mine",
+        "value": 0
+       },
+       {
+        "type": "counter_set",
+        "counter": "ops_enemy",
+        "value": 0
+       },
+       {
+        "type": "counter_add",
+        "counter": "morale",
+        "delta": -4
+       },
+       {
+        "type": "counter_add",
+        "counter": "pollution",
+        "delta": 2
+       },
+       {
+        "type": "log",
+        "text": "【作战】铁砧 的守备比预计的厚。三支舰队折在里面，只回来一条船。",
+        "level": "danger"
+       },
+       {
+        "type": "hint",
+        "text": "打不动。先攒舰队，或者换个软一点的目标。"
+       },
+       {
+        "type": "open_view",
+        "view": "ops_lose_2"
+       }
+      ]
+     },
+     {
+      "text": "撤退",
+      "effects": [
+       {
+        "type": "counter_add",
+        "counter": "fleets",
+        "delta": 2
+       },
+       {
+        "type": "counter_set",
+        "counter": "ops_mine",
+        "value": 0
+       },
+       {
+        "type": "counter_set",
+        "counter": "ops_enemy",
+        "value": 0
+       },
+       {
+        "type": "log",
+        "text": "【作战】在 铁砧 外围停住，掉头回来。三支出去，两支回来。",
+        "level": "warn"
+       },
+       {
+        "type": "hint",
+        "text": "撤退了。损失一支舰队的油料和补给。"
+       },
+       {
+        "type": "close_view"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "ops_battle_3",
+    "title": "作战：裂隙-3",
+    "width": 78,
+    "sections": [
+     {
+      "title": " 对阵 ",
+      "lines": [
+       " 目标 裂隙-3　深渊的运输枢纽，守备最厚，也最值钱。",
+       " 我方投入 {counters.ops_mine} 支　敌方守备 {counters.ops_enemy} 支",
+       " 判定：我方 >= 敌方才能拿下。"
+      ]
+     }
+    ],
+    "actions": [
+     {
+      "text": "接战（我方不少于守备）",
+      "condition": {
+       "type": "counter_cmp",
+       "a": "ops_mine",
+       "b": "ops_enemy",
+       "op": ">="
+      },
+      "effects": [
+       {
+        "type": "galaxy_set",
+        "node": "rift3",
+        "owner": "player_remnant",
+        "fleets": 0,
+        "pollution_add": 1
+       },
+       {
+        "type": "counter_add",
+        "counter": "rel_abyss",
+        "delta": -2
+       },
+       {
+        "type": "counter_add",
+        "counter": "gw_wars",
+        "delta": 1
+       },
+       {
+        "type": "counter_add",
+        "counter": "gw_wars_ops",
+        "delta": 1
+       },
+       {
+        "type": "counter_set",
+        "counter": "ops_done_3",
+        "value": 1
+       },
+       {
+        "type": "counter_set",
+        "counter": "ops_mine",
+        "value": 0
+       },
+       {
+        "type": "counter_add",
+        "counter": "fleets",
+        "delta": 1
+       },
+       {
+        "type": "counter_add",
+        "counter": "alloy",
+        "delta": 15
+       },
+       {
+        "type": "counter_add",
+        "counter": "morale",
+        "delta": 3
+       },
+       {
+        "type": "log",
+        "text": "【作战】裂隙-3 打下来了。守备被清空，节点归索尔，回收合金 +15。",
+        "level": "good"
+       },
+       {
+        "type": "hint",
+        "text": "裂隙-3 归你了。深渊不会就这么算了。"
+       },
+       {
+        "type": "open_view",
+        "view": "ops_win_3"
+       }
+      ]
+     },
+     {
+      "text": "硬打（我方少于守备）",
+      "condition": {
+       "type": "counter_cmp",
+       "a": "ops_mine",
+       "b": "ops_enemy",
+       "op": "<"
+      },
+      "effects": [
+       {
+        "type": "galaxy_set",
+        "node": "rift3",
+        "fleets_add": -1,
+        "pollution_add": 2
+       },
+       {
+        "type": "counter_set",
+        "counter": "ops_mine",
+        "value": 0
+       },
+       {
+        "type": "counter_set",
+        "counter": "ops_enemy",
+        "value": 0
+       },
+       {
+        "type": "counter_add",
+        "counter": "morale",
+        "delta": -4
+       },
+       {
+        "type": "counter_add",
+        "counter": "pollution",
+        "delta": 2
+       },
+       {
+        "type": "log",
+        "text": "【作战】裂隙-3 的守备比预计的厚。三支舰队折在里面，只回来一条船。",
+        "level": "danger"
+       },
+       {
+        "type": "hint",
+        "text": "打不动。先攒舰队，或者换个软一点的目标。"
+       },
+       {
+        "type": "open_view",
+        "view": "ops_lose_3"
+       }
+      ]
+     },
+     {
+      "text": "撤退",
+      "effects": [
+       {
+        "type": "counter_add",
+        "counter": "fleets",
+        "delta": 2
+       },
+       {
+        "type": "counter_set",
+        "counter": "ops_mine",
+        "value": 0
+       },
+       {
+        "type": "counter_set",
+        "counter": "ops_enemy",
+        "value": 0
+       },
+       {
+        "type": "log",
+        "text": "【作战】在 裂隙-3 外围停住，掉头回来。三支出去，两支回来。",
+        "level": "warn"
+       },
+       {
+        "type": "hint",
+        "text": "撤退了。损失一支舰队的油料和补给。"
+       },
+       {
+        "type": "close_view"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "ops_win_1",
+    "title": "战报：裂隙-7",
+    "width": 78,
+    "sections": [
+     {
+      "title": " 结果 ",
+      "lines": [
+       " 裂隙-7 拿下了。守备清空，节点归索索尔。"
+      ]
+     },
+     {
+      "title": " 现在的账 ",
+      "lines": [
+       " 舰队 {counters.fleets} 支　合金 {counters.alloy}　民情 {counters.morale}　污染 {counters.pollution}",
+       " 已交战节点 {counters.gw_wars} 处"
+      ]
+     },
+     {
+      "title": " 星图 ",
+      "provider": "galaxy_live"
+     }
+    ],
+    "actions": [
+     {
+      "text": "再打一个",
+      "effects": [
+       {
+        "type": "open_view",
+        "view": "fleet_ops"
+       }
+      ]
+     },
+     {
+      "text": "关闭",
+      "effects": [
+       {
+        "type": "close_view"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "ops_lose_1",
+    "title": "战报：裂隙-7",
+    "width": 78,
+    "sections": [
+     {
+      "title": " 结果 ",
+      "lines": [
+       " 裂隙-7 没打下来。三支舰队折在里面。"
+      ]
+     },
+     {
+      "title": " 现在的账 ",
+      "lines": [
+       " 舰队 {counters.fleets} 支　合金 {counters.alloy}　民情 {counters.morale}　污染 {counters.pollution}",
+       " 已交战节点 {counters.gw_wars} 处"
+      ]
+     },
+     {
+      "title": " 星图 ",
+      "provider": "galaxy_live"
+     }
+    ],
+    "actions": [
+     {
+      "text": "再打一个",
+      "effects": [
+       {
+        "type": "open_view",
+        "view": "fleet_ops"
+       }
+      ]
+     },
+     {
+      "text": "关闭",
+      "effects": [
+       {
+        "type": "close_view"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "ops_win_2",
+    "title": "战报：铁砧",
+    "width": 78,
+    "sections": [
+     {
+      "title": " 结果 ",
+      "lines": [
+       " 铁砧 拿下了。守备清空，节点归索索尔。"
+      ]
+     },
+     {
+      "title": " 现在的账 ",
+      "lines": [
+       " 舰队 {counters.fleets} 支　合金 {counters.alloy}　民情 {counters.morale}　污染 {counters.pollution}",
+       " 已交战节点 {counters.gw_wars} 处"
+      ]
+     },
+     {
+      "title": " 星图 ",
+      "provider": "galaxy_live"
+     }
+    ],
+    "actions": [
+     {
+      "text": "再打一个",
+      "effects": [
+       {
+        "type": "open_view",
+        "view": "fleet_ops"
+       }
+      ]
+     },
+     {
+      "text": "关闭",
+      "effects": [
+       {
+        "type": "close_view"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "ops_lose_2",
+    "title": "战报：铁砧",
+    "width": 78,
+    "sections": [
+     {
+      "title": " 结果 ",
+      "lines": [
+       " 铁砧 没打下来。三支舰队折在里面。"
+      ]
+     },
+     {
+      "title": " 现在的账 ",
+      "lines": [
+       " 舰队 {counters.fleets} 支　合金 {counters.alloy}　民情 {counters.morale}　污染 {counters.pollution}",
+       " 已交战节点 {counters.gw_wars} 处"
+      ]
+     },
+     {
+      "title": " 星图 ",
+      "provider": "galaxy_live"
+     }
+    ],
+    "actions": [
+     {
+      "text": "再打一个",
+      "effects": [
+       {
+        "type": "open_view",
+        "view": "fleet_ops"
+       }
+      ]
+     },
+     {
+      "text": "关闭",
+      "effects": [
+       {
+        "type": "close_view"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "ops_win_3",
+    "title": "战报：裂隙-3",
+    "width": 78,
+    "sections": [
+     {
+      "title": " 结果 ",
+      "lines": [
+       " 裂隙-3 拿下了。守备清空，节点归索索尔。"
+      ]
+     },
+     {
+      "title": " 现在的账 ",
+      "lines": [
+       " 舰队 {counters.fleets} 支　合金 {counters.alloy}　民情 {counters.morale}　污染 {counters.pollution}",
+       " 已交战节点 {counters.gw_wars} 处"
+      ]
+     },
+     {
+      "title": " 星图 ",
+      "provider": "galaxy_live"
+     }
+    ],
+    "actions": [
+     {
+      "text": "再打一个",
+      "effects": [
+       {
+        "type": "open_view",
+        "view": "fleet_ops"
+       }
+      ]
+     },
+     {
+      "text": "关闭",
+      "effects": [
+       {
+        "type": "close_view"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "ops_lose_3",
+    "title": "战报：裂隙-3",
+    "width": 78,
+    "sections": [
+     {
+      "title": " 结果 ",
+      "lines": [
+       " 裂隙-3 没打下来。三支舰队折在里面。"
+      ]
+     },
+     {
+      "title": " 现在的账 ",
+      "lines": [
+       " 舰队 {counters.fleets} 支　合金 {counters.alloy}　民情 {counters.morale}　污染 {counters.pollution}",
+       " 已交战节点 {counters.gw_wars} 处"
+      ]
+     },
+     {
+      "title": " 星图 ",
+      "provider": "galaxy_live"
+     }
+    ],
+    "actions": [
+     {
+      "text": "再打一个",
+      "effects": [
+       {
+        "type": "open_view",
+        "view": "fleet_ops"
+       }
+      ]
+     },
+     {
+      "text": "关闭",
+      "effects": [
+       {
+        "type": "close_view"
+       }
+      ]
+     }
+    ]
    }
   ]
  },
@@ -27160,6 +28627,84 @@
      "npc_chief_scientist"
     ],
     "dialogue": "dlg_ev_intel_03"
+   },
+   {
+    "id": "ev_rel_veil_warm",
+    "name": "[外交] 帷幕公约送来一封没有署名的信",
+    "category": "diplomacy",
+    "once": true,
+    "priority": 60,
+    "condition": {
+     "type": "counter",
+     "counter": "rel_veil_pact",
+     "op": ">=",
+     "value": 3
+    },
+    "presentedBy": [
+     "npc_diplomat"
+    ],
+    "dialogue": "dlg_ev_rel_veil_warm"
+   },
+   {
+    "id": "ev_rel_iron_war",
+    "name": "[外交] 铁合唱把锻炉的火全灭了",
+    "category": "diplomacy",
+    "once": true,
+    "priority": 70,
+    "condition": {
+     "type": "counter",
+     "counter": "rel_iron_chorus",
+     "op": "<=",
+     "value": -4
+    },
+    "presentedBy": [
+     "npc_diplomat"
+    ],
+    "dialogue": "dlg_ev_rel_iron_war"
+   },
+   {
+    "id": "ev_ops_backlash",
+    "name": "[深渊] 帷幕星云边缘的光点又多了",
+    "category": "abyss",
+    "once": true,
+    "priority": 80,
+    "condition": {
+     "type": "all",
+     "all": [
+      {
+       "type": "counter",
+       "counter": "gw_wars_ops",
+       "op": ">=",
+       "value": 1
+      },
+      {
+       "type": "tick",
+       "op": ">=",
+       "value": 1200
+      }
+     ]
+    },
+    "presentedBy": [
+     "npc_fleet_commander"
+    ],
+    "dialogue": "dlg_ev_ops_backlash"
+   },
+   {
+    "id": "ev_ops_campaign_done",
+    "name": "[战役] 三个节点都插上了索尔的旗",
+    "category": "military",
+    "once": true,
+    "priority": 90,
+    "condition": {
+     "type": "counter",
+     "counter": "gw_wars_ops",
+     "op": ">=",
+     "value": 3
+    },
+    "presentedBy": [
+     "npc_fleet_commander"
+    ],
+    "dialogue": "dlg_ev_ops_campaign_done"
    }
   ]
  },
@@ -28319,6 +29864,38 @@
     "condition": "pending:ev_intel_03",
     "dialogue": "dlg_ev_intel_03",
     "priority": 95
+   },
+   {
+    "id": "ap_npc_diplomat_dlg_ev_rel_veil_warm",
+    "npcId": "npc_diplomat",
+    "condition": "pending:ev_rel_veil_warm",
+    "dialogue": "dlg_ev_rel_veil_warm",
+    "priority": 85,
+    "once": true
+   },
+   {
+    "id": "ap_npc_diplomat_dlg_ev_rel_iron_war",
+    "npcId": "npc_diplomat",
+    "condition": "pending:ev_rel_iron_war",
+    "dialogue": "dlg_ev_rel_iron_war",
+    "priority": 86,
+    "once": true
+   },
+   {
+    "id": "ap_npc_fleet_commander_dlg_ev_ops_backlash",
+    "npcId": "npc_fleet_commander",
+    "condition": "pending:ev_ops_backlash",
+    "dialogue": "dlg_ev_ops_backlash",
+    "priority": 87,
+    "once": true
+   },
+   {
+    "id": "ap_npc_fleet_commander_dlg_ev_ops_campaign_done",
+    "npcId": "npc_fleet_commander",
+    "condition": "pending:ev_ops_campaign_done",
+    "dialogue": "dlg_ev_ops_campaign_done",
+    "priority": 88,
+    "once": true
    }
   ]
  },
@@ -29705,6 +31282,901 @@
       "level": "warn"
      }
     ]
+   },
+   {
+    "id": "hook_gw_seed_live",
+    "on": "game_start",
+    "priority": 5,
+    "once": true,
+    "effects": [
+     {
+      "type": "counter_set",
+      "counter": "rel_veil_pact",
+      "value": 2
+     },
+     {
+      "type": "counter_set",
+      "counter": "rel_vega_compact",
+      "value": 0
+     },
+     {
+      "type": "counter_set",
+      "counter": "rel_alpha_traders",
+      "value": 2
+     },
+     {
+      "type": "counter_set",
+      "counter": "rel_iron_chorus",
+      "value": -3
+     },
+     {
+      "type": "counter_set",
+      "counter": "rel_abyss",
+      "value": -4
+     },
+     {
+      "type": "counter_set",
+      "counter": "rel_old_empire",
+      "value": -1
+     },
+     {
+      "type": "counter_set",
+      "counter": "rel_free_miners",
+      "value": 0
+     },
+     {
+      "type": "counter_set",
+      "counter": "rel_scavenger_league",
+      "value": 0
+     },
+     {
+      "type": "counter_set",
+      "counter": "rel_silent_order",
+      "value": -1
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_sol3_pop",
+      "value": 640
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_sol3_morale",
+      "value": 72
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_sol3_food",
+      "value": 17
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_sol3_ore",
+      "value": 120
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_sol3_defense",
+      "value": 2
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_sol4_pop",
+      "value": 180
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_sol4_morale",
+      "value": 64
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_sol4_food",
+      "value": 9
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_sol4_ore",
+      "value": 260
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_sol4_defense",
+      "value": 1
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_veil_pop",
+      "value": 95
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_veil_morale",
+      "value": 58
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_veil_food",
+      "value": 6
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_veil_ore",
+      "value": 40
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_veil_defense",
+      "value": 1
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_ruins_pop",
+      "value": 48
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_ruins_morale",
+      "value": 50
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_ruins_food",
+      "value": 4
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_ruins_ore",
+      "value": 10
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_ruins_defense",
+      "value": 0
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_res_pop",
+      "value": 60
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_res_morale",
+      "value": 66
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_res_food",
+      "value": 5
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_res_ore",
+      "value": 90
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_res_defense",
+      "value": 0
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_dock_pop",
+      "value": 210
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_dock_morale",
+      "value": 70
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_dock_food",
+      "value": 11
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_dock_ore",
+      "value": 30
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_dock_defense",
+      "value": 1
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_cold_pop",
+      "value": 210
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_cold_morale",
+      "value": 61
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_cold_food",
+      "value": 8
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_cold_ore",
+      "value": 180
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_cold_defense",
+      "value": 1
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_lamp_pop",
+      "value": 90
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_lamp_morale",
+      "value": 55
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_lamp_food",
+      "value": 4
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_lamp_ore",
+      "value": 20
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_lamp_defense",
+      "value": 2
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_drift_pop",
+      "value": 305
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_drift_morale",
+      "value": 48
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_drift_food",
+      "value": 11
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_drift_ore",
+      "value": 30
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_drift_defense",
+      "value": 1
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_anchor_pop",
+      "value": 140
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_anchor_morale",
+      "value": 70
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_anchor_food",
+      "value": 20
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_anchor_ore",
+      "value": 60
+     },
+     {
+      "type": "counter_set",
+      "counter": "col_col_anchor_defense",
+      "value": 2
+     },
+     {
+      "type": "counter_set",
+      "counter": "ops_mine",
+      "value": 0
+     },
+     {
+      "type": "counter_set",
+      "counter": "ops_enemy",
+      "value": 0
+     },
+     {
+      "type": "counter_set",
+      "counter": "gw_wars_ops",
+      "value": 0
+     }
+    ]
+   },
+   {
+    "id": "hook_gw_colony_daily",
+    "on": "day",
+    "priority": 35,
+    "effects": [
+     {
+      "type": "if",
+      "condition": {
+       "type": "counter",
+       "counter": "food",
+       "op": ">=",
+       "value": 10
+      },
+      "then": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_sol3_morale",
+        "delta": 1
+       }
+      ],
+      "else": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_sol3_morale",
+        "delta": -3
+       }
+      ]
+     },
+     {
+      "type": "if",
+      "condition": {
+       "type": "counter",
+       "counter": "col_col_sol3_morale",
+       "op": ">=",
+       "value": 60
+      },
+      "then": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_sol3_pop",
+        "delta": 12
+       }
+      ],
+      "else": [
+       {
+        "type": "if",
+        "condition": {
+         "type": "counter",
+         "counter": "col_col_sol3_pop",
+         "op": ">=",
+         "value": 40
+        },
+        "then": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_sol3_pop",
+          "delta": -6
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "type": "if",
+      "condition": {
+       "type": "counter",
+       "counter": "food",
+       "op": ">=",
+       "value": 10
+      },
+      "then": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_sol4_morale",
+        "delta": 1
+       }
+      ],
+      "else": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_sol4_morale",
+        "delta": -3
+       }
+      ]
+     },
+     {
+      "type": "if",
+      "condition": {
+       "type": "counter",
+       "counter": "col_col_sol4_morale",
+       "op": ">=",
+       "value": 60
+      },
+      "then": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_sol4_pop",
+        "delta": 12
+       }
+      ],
+      "else": [
+       {
+        "type": "if",
+        "condition": {
+         "type": "counter",
+         "counter": "col_col_sol4_pop",
+         "op": ">=",
+         "value": 40
+        },
+        "then": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_sol4_pop",
+          "delta": -6
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "type": "if",
+      "condition": {
+       "type": "counter",
+       "counter": "food",
+       "op": ">=",
+       "value": 10
+      },
+      "then": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_veil_morale",
+        "delta": 1
+       }
+      ],
+      "else": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_veil_morale",
+        "delta": -3
+       }
+      ]
+     },
+     {
+      "type": "if",
+      "condition": {
+       "type": "counter",
+       "counter": "col_col_veil_morale",
+       "op": ">=",
+       "value": 60
+      },
+      "then": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_veil_pop",
+        "delta": 12
+       }
+      ],
+      "else": [
+       {
+        "type": "if",
+        "condition": {
+         "type": "counter",
+         "counter": "col_col_veil_pop",
+         "op": ">=",
+         "value": 40
+        },
+        "then": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_veil_pop",
+          "delta": -6
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "type": "if",
+      "condition": {
+       "type": "counter",
+       "counter": "food",
+       "op": ">=",
+       "value": 10
+      },
+      "then": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_ruins_morale",
+        "delta": 1
+       }
+      ],
+      "else": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_ruins_morale",
+        "delta": -3
+       }
+      ]
+     },
+     {
+      "type": "if",
+      "condition": {
+       "type": "counter",
+       "counter": "col_col_ruins_morale",
+       "op": ">=",
+       "value": 60
+      },
+      "then": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_ruins_pop",
+        "delta": 12
+       }
+      ],
+      "else": [
+       {
+        "type": "if",
+        "condition": {
+         "type": "counter",
+         "counter": "col_col_ruins_pop",
+         "op": ">=",
+         "value": 40
+        },
+        "then": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_ruins_pop",
+          "delta": -6
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "type": "if",
+      "condition": {
+       "type": "counter",
+       "counter": "food",
+       "op": ">=",
+       "value": 10
+      },
+      "then": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_res_morale",
+        "delta": 1
+       }
+      ],
+      "else": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_res_morale",
+        "delta": -3
+       }
+      ]
+     },
+     {
+      "type": "if",
+      "condition": {
+       "type": "counter",
+       "counter": "col_col_res_morale",
+       "op": ">=",
+       "value": 60
+      },
+      "then": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_res_pop",
+        "delta": 12
+       }
+      ],
+      "else": [
+       {
+        "type": "if",
+        "condition": {
+         "type": "counter",
+         "counter": "col_col_res_pop",
+         "op": ">=",
+         "value": 40
+        },
+        "then": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_res_pop",
+          "delta": -6
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "type": "if",
+      "condition": {
+       "type": "counter",
+       "counter": "food",
+       "op": ">=",
+       "value": 10
+      },
+      "then": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_dock_morale",
+        "delta": 1
+       }
+      ],
+      "else": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_dock_morale",
+        "delta": -3
+       }
+      ]
+     },
+     {
+      "type": "if",
+      "condition": {
+       "type": "counter",
+       "counter": "col_col_dock_morale",
+       "op": ">=",
+       "value": 60
+      },
+      "then": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_dock_pop",
+        "delta": 12
+       }
+      ],
+      "else": [
+       {
+        "type": "if",
+        "condition": {
+         "type": "counter",
+         "counter": "col_col_dock_pop",
+         "op": ">=",
+         "value": 40
+        },
+        "then": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_dock_pop",
+          "delta": -6
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "type": "if",
+      "condition": {
+       "type": "counter",
+       "counter": "food",
+       "op": ">=",
+       "value": 10
+      },
+      "then": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_cold_morale",
+        "delta": 1
+       }
+      ],
+      "else": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_cold_morale",
+        "delta": -3
+       }
+      ]
+     },
+     {
+      "type": "if",
+      "condition": {
+       "type": "counter",
+       "counter": "col_col_cold_morale",
+       "op": ">=",
+       "value": 60
+      },
+      "then": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_cold_pop",
+        "delta": 12
+       }
+      ],
+      "else": [
+       {
+        "type": "if",
+        "condition": {
+         "type": "counter",
+         "counter": "col_col_cold_pop",
+         "op": ">=",
+         "value": 40
+        },
+        "then": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_cold_pop",
+          "delta": -6
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "type": "if",
+      "condition": {
+       "type": "counter",
+       "counter": "food",
+       "op": ">=",
+       "value": 10
+      },
+      "then": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_lamp_morale",
+        "delta": 1
+       }
+      ],
+      "else": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_lamp_morale",
+        "delta": -3
+       }
+      ]
+     },
+     {
+      "type": "if",
+      "condition": {
+       "type": "counter",
+       "counter": "col_col_lamp_morale",
+       "op": ">=",
+       "value": 60
+      },
+      "then": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_lamp_pop",
+        "delta": 12
+       }
+      ],
+      "else": [
+       {
+        "type": "if",
+        "condition": {
+         "type": "counter",
+         "counter": "col_col_lamp_pop",
+         "op": ">=",
+         "value": 40
+        },
+        "then": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_lamp_pop",
+          "delta": -6
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "type": "if",
+      "condition": {
+       "type": "counter",
+       "counter": "food",
+       "op": ">=",
+       "value": 10
+      },
+      "then": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_drift_morale",
+        "delta": 1
+       }
+      ],
+      "else": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_drift_morale",
+        "delta": -3
+       }
+      ]
+     },
+     {
+      "type": "if",
+      "condition": {
+       "type": "counter",
+       "counter": "col_col_drift_morale",
+       "op": ">=",
+       "value": 60
+      },
+      "then": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_drift_pop",
+        "delta": 12
+       }
+      ],
+      "else": [
+       {
+        "type": "if",
+        "condition": {
+         "type": "counter",
+         "counter": "col_col_drift_pop",
+         "op": ">=",
+         "value": 40
+        },
+        "then": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_drift_pop",
+          "delta": -6
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "type": "if",
+      "condition": {
+       "type": "counter",
+       "counter": "food",
+       "op": ">=",
+       "value": 10
+      },
+      "then": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_anchor_morale",
+        "delta": 1
+       }
+      ],
+      "else": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_anchor_morale",
+        "delta": -3
+       }
+      ]
+     },
+     {
+      "type": "if",
+      "condition": {
+       "type": "counter",
+       "counter": "col_col_anchor_morale",
+       "op": ">=",
+       "value": 60
+      },
+      "then": [
+       {
+        "type": "counter_add",
+        "counter": "col_col_anchor_pop",
+        "delta": 12
+       }
+      ],
+      "else": [
+       {
+        "type": "if",
+        "condition": {
+         "type": "counter",
+         "counter": "col_col_anchor_pop",
+         "op": ">=",
+         "value": 40
+        },
+        "then": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_anchor_pop",
+          "delta": -6
+         }
+        ]
+       }
+      ]
+     }
+    ]
    }
   ]
  },
@@ -29885,9 +32357,9 @@
     "y": 10,
     "owner": "abyss",
     "pollution": 4,
-    "fleets": 0,
+    "fleets": 2,
     "mark": "◉",
-    "desc": "敌对"
+    "desc": "敌对（守备 2 支）"
    },
    {
     "id": "rift3",
@@ -29896,9 +32368,9 @@
     "y": 7,
     "owner": "abyss",
     "pollution": 3,
-    "fleets": 0,
+    "fleets": 4,
     "mark": "◉",
-    "desc": "敌对"
+    "desc": "敌对（守备 4 支）"
    },
    {
     "id": "echohub",
@@ -29918,9 +32390,9 @@
     "y": 17,
     "owner": "iron_chorus",
     "pollution": 0,
-    "fleets": 1,
+    "fleets": 3,
     "mark": "◉",
-    "desc": "敌对"
+    "desc": "敌对（守备 3 支）"
    },
    {
     "id": "quiet",
@@ -31768,7 +34240,8 @@
     "color": "player",
     "relation": "self",
     "stance": "自己人",
-    "desc": "索尔星系的残存舰队与殖民地。人口两千余，没有母星。"
+    "desc": "索尔星系的残存舰队与殖民地。人口两千余，没有母星。",
+    "attitude": 0
    },
    {
     "id": "veil_pact",
@@ -31777,7 +34250,8 @@
     "color": "npc2",
     "relation": "friendly",
     "stance": "愿意谈",
-    "desc": "帷幕星云边缘的独立定居点联盟。缺粮，缺船，不缺骨气。"
+    "desc": "帷幕星云边缘的独立定居点联盟。缺粮，缺船，不缺骨气。",
+    "attitude": 2
    },
    {
     "id": "vega_compact",
@@ -31786,7 +34260,8 @@
     "color": "npc3",
     "relation": "neutral",
     "stance": "观望",
-    "desc": "工业世界，谁给订单就跟谁好。"
+    "desc": "工业世界，谁给订单就跟谁好。",
+    "attitude": 0
    },
    {
     "id": "alpha_traders",
@@ -31795,7 +34270,8 @@
     "color": "warn",
     "relation": "friendly",
     "stance": "做生意",
-    "desc": "流动商队。只认货，不认旗。"
+    "desc": "流动商队。只认货，不认旗。",
+    "attitude": 2
    },
    {
     "id": "iron_chorus",
@@ -31804,7 +34280,8 @@
     "color": "danger",
     "relation": "hostile",
     "stance": "敌对",
-    "desc": "把人类改造成机械的教团。他们管这叫升华。"
+    "desc": "把人类改造成机械的教团。他们管这叫升华。",
+    "attitude": -3
    },
    {
     "id": "abyss",
@@ -31813,7 +34290,8 @@
     "color": "abyss",
     "relation": "hostile",
     "stance": "无法沟通",
-    "desc": "不思考，只按物理法则扩张。没人见过它长什么样。"
+    "desc": "不思考，只按物理法则扩张。没人见过它长什么样。",
+    "attitude": -4
    },
    {
     "id": "old_empire",
@@ -31822,7 +34300,8 @@
     "color": "ui_dim",
     "relation": "unknown",
     "stance": "未知",
-    "desc": "信标还在发信号，但发信的人已经不在了。"
+    "desc": "信标还在发信号，但发信的人已经不在了。",
+    "attitude": -1
    },
    {
     "id": "free_miners",
@@ -31831,7 +34310,8 @@
     "color": "npc3",
     "relation": "neutral",
     "stance": "看情况",
-    "desc": "小行星带的散户。给钱就带路，不给就绕路。"
+    "desc": "小行星带的散户。给钱就带路，不给就绕路。",
+    "attitude": 0
    },
    {
     "id": "scavenger_league",
@@ -31840,7 +34320,8 @@
     "color": "npc3",
     "relation": "neutral",
     "stance": "看货色",
-    "desc": "在旧战场捡船拆件的散兵。不谈立场，只谈价钱；今天卖给谁，明天可能就卖给对面。"
+    "desc": "在旧战场捡船拆件的散兵。不谈立场，只谈价钱；今天卖给谁，明天可能就卖给对面。",
+    "attitude": 0
    },
    {
     "id": "silent_order",
@@ -31849,7 +34330,8 @@
     "color": "ui_dim",
     "relation": "unknown",
     "stance": "不回应",
-    "desc": "相信深渊是唯一的神。出现在被放弃的殖民地边上，不说话，也不抢东西只是站着看。"
+    "desc": "相信深渊是唯一的神。出现在被放弃的殖民地边上，不说话，也不抢东西只是站着看。",
+    "attitude": -1
    }
   ]
  },
@@ -35684,6 +38166,19 @@
     "cost": "2 天",
     "reward": "民情 +10",
     "status": "待接"
+   },
+   {
+    "id": "mis_campaign",
+    "name": "深渊反攻",
+    "objective": "拿下三个深渊/铁合唱节点（裂隙-7 / 铁砧 / 裂隙-3）",
+    "cost": "每个目标 3 支舰队",
+    "reward": "节点归属、合金、舰队回收",
+    "status": "可接",
+    "progress": {
+     "counter": "gw_wars_ops",
+     "target": 3,
+     "label": "深渊反攻"
+    }
    }
   ]
  },

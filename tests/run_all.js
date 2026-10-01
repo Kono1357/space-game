@@ -2,7 +2,7 @@
 var cp = require('child_process'), path = require('path');
 var files = ['test_space.js', 'test_world.js', 'test_arch.js', 'test_text.js', 'test_shell.js', 'test_build.js',
              /* 这几条要 spawn Python：校验器与命名逻辑的可信度全靠它们 */
-             'test_merge_parity.js', 'test_maprules_parity.js', 'test_validate.js', 'test_names.js', 'test_terrain.js'];
+             'test_merge_parity.js', 'test_maprules_parity.js', 'test_validate.js', 'test_names.js', 'test_terrain.js', 'test_strategy.js'];
 var total = 0, bad = 0, scaled = 0;
 files.forEach(function (f) {
   console.log('\n########## ' + f + ' ##########');

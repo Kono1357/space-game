@@ -314,6 +314,13 @@ registerCondition('flag', function(g, c){
 registerCondition('counter', function(g, c){
   return compare(num(g.world.counters[c.counter], 0), c.op, num(c.value, 1));
 });
+/* 比较**两个计数器**（词表里原本只有「计数器 vs 常数」）。
+   做「我方舰队 vs 敌方舰队」这类判定必须要有它 —— 否则内容层表达不了胜负条件。 */
+registerCondition('counter_cmp', function(g, c){
+  var a = num(g.world.counters[c.a], num(c.aDefault, 0)) + num(c.aOffset, 0);
+  var b = num(g.world.counters[c.b], num(c.bDefault, 0)) + num(c.bOffset, 0);
+  return compare(a, c.op || '>=', b);
+});
 registerCondition('stat', function(g, c){
   return compare(num(g.playerStat(c.stat), 0), c.op, num(c.value, 1));
 });
@@ -478,6 +485,16 @@ registerEffect('end_game', function(g, e){
 });
 /* 改星图：把某个星系节点的归属 / 关系 / 舰队 / 污染写进 world.galaxy（存档里也带）。
    owner/relation/mark/fleets/pollution 是绝对值；*_add 是相对值（基于当前生效值）。 */
+registerEffect('galaxy_get', function(g, e){
+  var id = e.node || e.id, to = e.counter;
+  if (!id || !to) return;
+  var nodes = asList(g.space && g.space.galaxy && g.space.galaxy.nodes), base = null;
+  for (var i = 0; i < nodes.length; i++) if (nodes[i] && nodes[i].id === id) base = nodes[i];
+  var over = g.world.galaxy[id] || {};
+  var f = str(e.field, 'fleets');
+  var v = (over[f] !== undefined) ? over[f] : (base ? base[f] : undefined);
+  g.world.counters[to] = num(v, num(e.default, 0));   /* galaxy_set 的读半边 */
+});
 registerEffect('galaxy_set', function(g, e){
   var id = e.node || e.id; if (!id) return;
   var nodes = asList(g.space && g.space.galaxy && g.space.galaxy.nodes), base = null;
@@ -3114,6 +3131,127 @@ registerViewProvider('galaxy_live', function(g){
                      '    关系 ' + rel + '    污染 ' + poll + '%    舰队 ' + fl, fg: 'ui' });
   }
   if (!out.length) out.push({ text: '星图上什么都没有。', fg: 'ui_dim' });
+  return out;
+});
+/* ============================== 战略层活数据（第 4 期）==============================
+ * 这几块内容在第 4 期之前**只登记在 SPACE_BLOCKS 里，内核一次都没读过**：
+ *   colonies（10 个殖民地）· fleetModules（34 个模块）· internalPolitics（12 个派别）
+ *   planetTypes（18 种行星）· diplomacy.actions（30 条外交动作）
+ * 也就是说：内容写了，游戏里一个字都看不到。这一节把它们显示出来。
+ *
+ * 殖民地的数值优先读 col_<id>_<字段> 计数器（内容用 game_start 钩子播种、按天推进），
+ * 没有计数器就退回内容里的静态值 —— 所以「殖民地每天在变」是内容驱动出来的，内核只管显示。
+ */
+function colVal(g, c, field){
+  var k = 'col_' + str(c.id, '?') + '_' + field;
+  if (g.world.counters[k] !== undefined) return num(g.world.counters[k], 0);
+  return num(c[field], 0);
+}
+registerViewProvider('colonies_live', function(g){
+  var out = [], cols = asList(g.space && g.space.colonies);
+  var pop = 0, mor = 0;
+  for (var i = 0; i < cols.length; i++){ pop += colVal(g, cols[i] || {}, 'pop'); mor += colVal(g, cols[i] || {}, 'morale'); }
+  out.push({ text: '在册 ' + cols.length + ' 处　总人口 ' + pop + '　平均士气 ' + (cols.length ? Math.round(mor / cols.length) : 0),
+             fg: 'ui_bright' });
+  for (var j = 0; j < cols.length; j++){
+    var c = cols[j] || {};
+    var m = colVal(g, c, 'morale');
+    out.push({ text: ' ' + str(c.name, c.id)
+                     + '　人口 ' + colVal(g, c, 'pop')
+                     + '　士气 ' + m
+                     + '　口粮 ' + colVal(g, c, 'food')
+                     + '　矿石 ' + colVal(g, c, 'ore')
+                     + '　防御 ' + colVal(g, c, 'defense'),
+               fg: m >= 60 ? 'good' : (m >= 35 ? 'ui' : 'warn') });
+  }
+  if (!cols.length) out.push({ text: '没有登记任何殖民地。', fg: 'ui_dim' });
+  return out;
+});
+registerViewProvider('fleets_live', function(g){
+  var out = [], fl = asList(g.space && g.space.fleets), mods = asList(g.space && g.space.fleetModules);
+  out.push({ text: '在编 ' + num(g.world.counters.fleets, 0) + ' 支　（登记了 ' + fl.length + ' 支有名字的，可装 ' + mods.length + ' 种模块）',
+             fg: 'ui_bright' });
+  for (var i = 0; i < fl.length; i++){
+    var f = fl[i] || {};
+    out.push({ text: ' ' + (f.flag ? '★' : ' ') + str(f.name, f.id)
+                     + '　' + str(f.class, '-') + '　' + str(f.status, '-')
+                     + '　在 ' + str(f.at, '-')
+                     + '　舰体 ' + num(f.hp, 0) + '%　舰员 ' + num(f.crew, 0),
+               fg: f.flag ? 'accent' : 'ui' });
+  }
+  if (mods.length){
+    out.push({ text: '', fg: 'ui_dim' });
+    out.push({ text: '可用模块（' + mods.length + ' 种，取样）：', fg: 'ui_dim' });
+    for (var k = 0; k < mods.length && k < 6; k++){
+      var mo = mods[k] || {};
+      out.push({ text: ' ' + str(mo.name, mo.id) + '　' + str(mo.type, '-') + '　' + str(mo.effect, ''), fg: 'ui_dim' });
+    }
+  }
+  return out;
+});
+registerViewProvider('politics_live', function(g){
+  var out = [], pols = asList(g.space && g.space.internalPolitics);
+  out.push({ text: '内部派别（支持度是活的：殖民地与污染会推着它走）', fg: 'ui_bright' });
+  var list = [];
+  for (var i = 0; i < pols.length; i++){
+    var p = pols[i] || {};
+    var k = 'support_' + str(p.id, '').replace(/^pol_/, '');
+    var s = (g.world.counters[k] !== undefined) ? num(g.world.counters[k], 0) : num(p.support, 0);
+    list.push({ p: p, s: s });
+  }
+  list.sort(function(a, b){ return b.s - a.s; });
+  for (var j = 0; j < list.length; j++){
+    var it = list[j], pp = it.p;
+    out.push({ text: ' ' + str(pp.name, pp.id) + '　支持 ' + it.s
+                     + '　诉求：' + str(pp.demand, '—'),
+               fg: it.s >= 40 ? 'accent' : (it.s >= 20 ? 'ui' : 'ui_dim') });
+  }
+  if (!pols.length) out.push({ text: '没有登记内部派别。', fg: 'ui_dim' });
+  return out;
+});
+registerViewProvider('planets_live', function(g){
+  var out = [], pts = asList(g.space && g.space.planetTypes);
+  out.push({ text: '行星志（' + pts.length + ' 种；生成世界的站点会按它的地貌生长）', fg: 'ui_bright' });
+  for (var i = 0; i < pts.length; i++){
+    var p = pts[i] || {};
+    out.push({ text: ' ' + str(p.name, p.id) + '　危害 ' + str(p.hazard, '无') + '　产出 ' + str(p.resource, '无'), fg: 'ui' });
+  }
+  return out;
+});
+registerViewProvider('diplomacy_live', function(g){
+  var out = [], fs = asList(g.space && g.space.factions);
+  var acts = asList(g.space && g.space.diplomacy && g.space.diplomacy.actions);
+  var nodes = asList(g.space && g.space.galaxy && g.space.galaxy.nodes), over = g.world.galaxy || {};
+  out.push({ text: '各派系对你的态度（rel_<派系> 是活计数器，会随你的行为变）', fg: 'ui_bright' });
+  for (var i = 0; i < fs.length; i++){
+    var f = fs[i] || {}, fid = str(f.id, '?');
+    if (fid === 'player_remnant') continue;
+    var k = 'rel_' + fid;
+    var v = (g.world.counters[k] !== undefined) ? num(g.world.counters[k], 0) : num(f.relation, 0);
+    var hold = 0;
+    for (var j = 0; j < nodes.length; j++){
+      var n = nodes[j] || {}, o = over[n.id] || {};
+      var own = (o.owner !== undefined) ? o.owner : n.owner;
+      if (own === fid) hold++;
+    }
+    var word = v >= 3 ? '亲近' : (v >= 1 ? '友善' : (v === 0 ? '冷淡' : (v >= -2 ? '戒备' : '敌对')));
+    out.push({ text: ' ' + str(f.mark, '·') + ' ' + str(f.name, fid) + '　态度 ' + v + '（' + word + '）'
+                     + '　占据 ' + hold + ' 处，' + str(f.stance, '') ,
+               fg: v >= 1 ? 'good' : (v === 0 ? 'ui' : (v >= -2 ? 'warn' : 'danger')) });
+  }
+  if (acts.length) out.push({ text: '可用外交动作 ' + acts.length + ' 条（在通讯终端里执行）', fg: 'ui_dim' });
+  return out;
+});
+registerViewProvider('diplomacy_actions', function(g){
+  var out = [], acts = asList(g.space && g.space.diplomacy && g.space.diplomacy.actions);
+  out.push({ text: '外交动作 ' + acts.length + ' 条（内容里写好了，以前一条都看不到）', fg: 'ui_bright' });
+  for (var i = 0; i < acts.length; i++){
+    var a = acts[i] || {};
+    var cost = str(a.cost, '');
+    out.push({ text: ' ' + str(a.name, a.id) + (cost ? '　耗 ' + cost : '') +
+                     (a.costType ? '（' + str(a.costType) + '）' : ''), fg: 'ui' });
+    if (a.effect) out.push({ text: '     ' + str(a.effect), fg: 'ui_dim' });
+  }
   return out;
 });
 registerViewProvider('validation', function(g){
