@@ -257,11 +257,25 @@ if (realModPaths.length){
   var realMods = realModPaths.map(function (p){ return JSON.parse(fs.readFileSync(p, 'utf8')); });
   var built = parity('21 真实内容 + example_mod + generated_world 全量合并一致', realBase, realMods);
   if (built){
-    /* 顺带把「合并后到底有多少内容」钉住 —— 数字变了就说明合并语义动了 */
-    ok('合并后场景数合理（25 -> 90）',
-       Core.asList(built.scenes).length === 90, Core.asList(built.scenes).length);
-    ok('合并后 NPC 数合理（38 -> 75）',
-       Core.asList(built.npcs).length === 75, Core.asList(built.npcs).length);
+    /* 这里**不写死数字**：内容是会长大的（第 2 期换了命名之后，生成世界就从 64 场景变成 55），
+       写死 90 只会让每次内容变动都来改测试。断言真正的不变量：
+         合并结果 = 基础内容的 id ∪ mods 带的**新 id**
+       （append 不覆盖老的，所以不是简单相加；patch 已有 id 的条目 —— example_mod 就 patch 了
+        station_corridor —— 不算新增。） */
+    function mergeExpect(block){
+      var baseIds = {};
+      Core.asList(realBase[block]).forEach(function (x){ baseIds[x.id] = 1; });
+      var fresh = {};
+      realMods.forEach(function (m){
+        Core.asList((m.data || {})[block]).forEach(function (x){ if (!baseIds[x.id]) fresh[x.id] = 1; });
+      });
+      return Object.keys(baseIds).length + Object.keys(fresh).length;
+    }
+    ['scenes', 'npcs', 'dialogues', 'interactables'].forEach(function (block){
+      var want = mergeExpect(block), got = Core.asList(built[block]).length;
+      ok(block + ' 合并后 = 基础 ∪ mods 新 id（' + want + ' 条）' + (block === 'scenes' ? ' ★' : ''),
+         got === want, got + ' vs ' + want);
+    });
   }
 }
 

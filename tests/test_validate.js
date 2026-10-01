@@ -77,9 +77,31 @@ ok('不再打印「错误 0 / 警告 0」冒充通过 ★', !/错误 0 \/ 警告
 /* ---------------------------------------------------------------- ③ 合并后校验 */
 section('③ --mods / --mods-dir：以合并结果为准');
 
+/* 不写死场景数：内容是会长大的（第 2 期换了命名之后，生成世界就从 64 场景变成 55）。
+   现算一遍「基础内容的 id ∪ mods 带来的新 id」再比。 */
+function expectMergedScenes(){
+  var base = JSON.parse(fs.readFileSync(path.join(ROOT, 'content', 'space.json'), 'utf8'));
+  var ids = {};
+  ((base.scenes || {}).list || []).forEach(function (s){ ids[s.id] = 1; });
+  var modsDir = path.join(ROOT, 'mods');
+  if (fs.existsSync(modsDir)){
+    fs.readdirSync(modsDir).forEach(function (d){
+      var p = path.join(modsDir, d, 'mod.json');
+      if (!fs.existsSync(p)) return;
+      var m = JSON.parse(fs.readFileSync(p, 'utf8'));
+      ((((m.data || {}).scenes || {}).list) || []).forEach(function (s){ ids[s.id] = 1; });
+    });
+  }
+  return Object.keys(ids).length;
+}
+var wantScenes = expectMergedScenes();
+var baseSceneCount = JSON.parse(fs.readFileSync(path.join(ROOT, 'content', 'space.json'), 'utf8')).scenes.list.length;
+
 var r3 = run(['--mods-dir', 'mods']);
 ok('--mods-dir mods：exit 0', r3.code === 0, r3.out.slice(0, 300));
-ok('报的是合并后的场景数（25 -> 90）★', /场景 90 /.test(r3.out), r3.out.split('\n').filter(function (l){ return /场景/.test(l); })[0]);
+ok('报的是合并后的场景数（基础 ' + baseSceneCount + ' -> 合并 ' + wantScenes + '）★',
+   new RegExp('场景 ' + wantScenes + ' ').test(r3.out),
+   (r3.out.split('\n').filter(function (l){ return /场景/.test(l); })[0] || '').slice(0, 90));
 ok('打印每个 mod 的增量', /generated_world/.test(r3.out) && /example_mod/.test(r3.out));
 ok('合并后仍然 0 错 0 警', /错误 0 \/ 警告 0/.test(r3.out), lastLine(r3.out));
 

@@ -1,0 +1,40 @@
+{
+ "id": "mod_new_culture",
+ "name": "测试用：加一套新语言",
+ "version": "1.0.0",
+ "priority": 60,
+ "author": "tests/test_names.js",
+ "description": "证明「加语言」不需要改 tools/gen_world.py —— 只写一个 nameCultures 块，生成器就会用它。这条 mod 认领了 free_miners，所以会把基础内容里 frontier 那套土话顶掉（冲突会被报出来，不是静默的）。",
+ "defaultOp": "append",
+ "data": {
+  "nameCultures": {
+   "list": [
+    {
+     "id": "my_tongue",
+     "name": "测试语",
+     "desc": "测试用的假语言：词全是生造的，好认。",
+     "owners": [
+      "free_miners"
+     ],
+     "placeA": [
+      "测试甲",
+      "测试乙",
+      "测试丙"
+     ],
+     "placeB": [
+      "港",
+      ""
+     ],
+     "personA": [
+      "测甲",
+      "测乙"
+     ],
+     "personB": [
+      "丁",
+      ""
+     ]
+    }
+   ]
+  }
+ }
+}

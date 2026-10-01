@@ -1,0 +1,52 @@
+{
+ "id": "mod_bad_culture",
+ "name": "测试用：坏掉的文化表",
+ "version": "1.0.0",
+ "priority": 61,
+ "author": "tests/test_names.js",
+ "description": "故意写坏两套语言：一套缺 placeA / personA，一套连 id 都没有。用来验证「坏数据只降级不崩」—— 跳过坏条目、报出问题，生成照常跑完。",
+ "defaultOp": "append",
+ "data": {
+  "nameCultures": {
+   "list": [
+    {
+     "id": "broken_tongue",
+     "name": "缺词表的语言",
+     "desc": "只有 id 和名字，没有 placeA / personA。",
+     "owners": [
+      "abyss"
+     ]
+    },
+    {
+     "name": "连 id 都没有的语言",
+     "placeA": [
+      "无"
+     ],
+     "personA": [
+      "无"
+     ]
+    },
+    {
+     "id": "ok_tongue",
+     "name": "正常的一套",
+     "desc": "同一份 mod 里混一个正常的，确认坏的没把好的带下水。",
+     "owners": [
+      "silent_order"
+     ],
+     "placeA": [
+      "静好"
+     ],
+     "placeB": [
+      "台"
+     ],
+     "personA": [
+      "好"
+     ],
+     "personB": [
+      "生"
+     ]
+    }
+   ]
+  }
+ }
+}

@@ -47,10 +47,87 @@ def owner_relation(owner):
     if owner in ('abyss', 'iron_chorus', 'silent_order'): return '敌对'
     return '中立'
 
-SYL_A = list('索安铁静弧尘帷孤长冷织南北深微回灰白锈极远旧寒晨裂环灯烬')
-SYL_B = ['尔', '台', '河', '港', '湾', '星', '矿', '门', '谷', '原', '塞', '礁', '场', '镜',
-         '丘', '关', '庭', '川', '岭', '洲', '隼', '锚', '哨', '脊']
-SUF = ['星区', '殖民地', '前哨', '矿站', '残骸区', '裂隙带', '中继站', '荒野', '穹顶', '驿站', '锚地', '观测点']
+# ---------------------------------------------------------------- 命名（文化驱动）
+# 名字不再来自一个全局音节池：每套「文化」有自己的词表，站点按**归属派系**选文化，
+# 所以深渊的地名、铁合唱的地名、残响议会的地名听起来是三拨人起的名。
+# 词表在 content/space.json 的 nameCultures 块里 —— **mod 可以加新语言，不用改这个文件**。
+KIND_SUF = {
+    'station': ['前哨', '中继站', '观测点', '锚地'],
+    'colony':  ['殖民地', '星区', '穹顶', '驿站'],
+    'surface': ['荒野', '星区', '观测点', '穹顶'],
+    'ship':    ['残骸区', '锚地', '驿站'],
+    'rift':    ['裂隙带', '荒野', '观测点'],
+}
+SUF_ALL = sorted({s for v in KIND_SUF.values() for s in v})
+
+# 内容里没有 nameCultures 时的兜底（老 spec / 坏数据只降级不崩）。
+# 词表就是改造前那套音节池，保证「没有文化表」时生成的还是能看的名字。
+FALLBACK_CULTURE = {
+    'id': 'fallback', 'name': '通用语',
+    'desc': '内容里没写 nameCultures 时的兜底词表。',
+    'placeA': list('索安铁静弧尘帷孤长冷织南北深微回灰白锈极远旧寒晨裂环灯烬'),
+    'placeB': ['尔', '台', '河', '港', '湾', '星', '矿', '门', '谷', '原', '塞', '礁', '场', '镜',
+               '丘', '关', '庭', '川', '岭', '洲', '隼', '锚', '哨', '脊', ''],
+    'personA': list('索安铁静弧尘帷孤长冷织南北深微回灰白锈极远旧寒晨裂环灯烬'),
+    'personB': ['尔', '台', '河', '港', '湾', '星', '矿', '门', '谷', '原', '塞', '礁'],
+}
+
+
+def load_cultures(space=None):
+    """读出文化表 -> (按派系索引, 文化表, 兜底文化, 问题列表)。
+
+    坏数据只降级：缺字段的文化跳过并记一条问题，生成不崩（VISION 第 4 条不变量）。
+    """
+    space = space if space is not None else GM.SPACE
+    blk = space.get('nameCultures')
+    if isinstance(blk, list): raw = blk
+    elif isinstance(blk, dict): raw = blk.get('list') or []
+    else: raw = []
+    cults, by_owner, problems = [], {}, []
+    for c in raw:
+        if not isinstance(c, dict) or not c.get('id'):
+            problems.append('nameCultures 里有条目缺少 id，已跳过'); continue
+        if not c.get('placeA') or not c.get('personA'):
+            problems.append('文化 %s 缺 placeA / personA（地名 / 人名的用词表），已跳过' % c['id']); continue
+        cults.append(c)
+        for o in (c.get('owners') or []):
+            if o in by_owner:
+                problems.append('派系 %s 同时被文化 %s 和 %s 认领，用后者'
+                                % (o, by_owner[o]['id'], c['id']))
+            by_owner[o] = c
+    fb_id = blk.get('fallback') if isinstance(blk, dict) else None
+    fb = next((c for c in cults if c['id'] == fb_id), None)
+    if fb is None:
+        fb = cults[0] if cults else FALLBACK_CULTURE
+        if cults and fb_id:
+            problems.append('nameCultures.fallback=%s 不存在，改用 %s' % (fb_id, fb['id']))
+    if not cults:
+        problems.append('内容里没有可用的 nameCultures，已回退到内置通用语')
+    return by_owner, cults, fb, problems
+
+
+def culture_for(by_owner, fallback, owner):
+    """这个派系说哪套话。没有认领者就走兜底（不报错，但 --selftest 会提示）。"""
+    return by_owner.get(owner) or fallback
+
+
+def person_name(rnd, cult):
+    """人名 = 首字 + 尾字；尾字里允许空字符串，就是「这个名字只有一个字」"""
+    return rnd.choice(cult['personA']) + rnd.choice(cult.get('personB') or [''])
+
+
+def place_name(rnd, used, cult, kind):
+    """地名 = 词干（可带一个后缀字）+ 分隔符 + 类型词。
+    类型词按站点种类挑（裂隙带不会被叫成中继站）。"""
+    suf = KIND_SUF.get(kind) or SUF_ALL
+    for _ in range(300):
+        core = rnd.choice(cult['placeA'])
+        if rnd.random() < 0.6:
+            core += rnd.choice(cult.get('placeB') or [''])
+        name = core + SEP + rnd.choice(suf)
+        if name not in used:
+            used.add(name); return name
+    name = '未命名' + SEP + str(len(used) + 1); used.add(name); return name
 
 
 def sid_of(seed):
@@ -73,10 +150,12 @@ def pick_owner(rnd, t, kind):
 
 
 def unique_name(rnd, used):
+    """（旧的全局音节池命名，已被 place_name 取代，保留给外部脚本调用）"""
     for _ in range(300):
-        name = rnd.choice(SYL_A) + rnd.choice(SYL_B)
-        if rnd.random() < 0.5: name += rnd.choice(SYL_A) + rnd.choice(SYL_B)
-        name += SEP + rnd.choice(SUF)
+        name = rnd.choice(FALLBACK_CULTURE['placeA']) + rnd.choice(FALLBACK_CULTURE['placeB'])
+        if rnd.random() < 0.5:
+            name += rnd.choice(FALLBACK_CULTURE['placeA']) + rnd.choice(FALLBACK_CULTURE['placeB'])
+        name += SEP + rnd.choice(SUF_ALL)
         if name not in used:
             used.add(name); return name
     name = '未知星区' + SEP + str(len(used) + 1); used.add(name); return name
@@ -357,7 +436,8 @@ def make_encounter(n, first, name, kind):
             ]}]}
 
 
-def build_site_content(rnd, s, i, kind, name, site_scenes, owner, narr, first, under_id, node_id):
+def build_site_content(rnd, s, i, kind, name, site_scenes, owner, narr, first, under_id, node_id, cult=None):
+    if cult is None: cult = FALLBACK_CULTURE
     n = '%02d' % (i + 1)
     view_id = 'gw_site_' + n
     ids = {
@@ -389,7 +469,7 @@ def build_site_content(rnd, s, i, kind, name, site_scenes, owner, narr, first, u
     if f2: used0.add(f2)
     if not (oxy and sxy and bxy and uxy and f1 and f2): return None
     tpl = SITE_NPC[kind]
-    npc_name = tpl['role'] + ' ' + rnd.choice(SYL_A) + rnd.choice(SYL_B)
+    npc_name = tpl['role'] + ' ' + person_name(rnd, cult)
     npc = {'id': ids['npc'], 'name': npc_name, 'symbol': tpl['symbol'], 'color': tpl['color'],
            'role': kind + '_keeper', 'faction': owner, 'homeScene': first, 'dialogue': ids['dlg'],
            'desc': '在 ' + name + ' 值守的人。'}
@@ -397,7 +477,7 @@ def build_site_content(rnd, s, i, kind, name, site_scenes, owner, narr, first, u
            'slots': [{'hours': [0, 24], 'scene': first, 'x': f1[0], 'y': f1[1]}]}
     dlg = make_npc_dialogue(ids['dlg'], ids['npc'], npc_name, name, kind, owner, narr, n)
     tpl2 = SITE_NPC2[kind]
-    npc2_name = tpl2['role'] + ' ' + rnd.choice(SYL_A) + rnd.choice(SYL_B)
+    npc2_name = tpl2['role'] + ' ' + person_name(rnd, cult)
     npc2 = {'id': ids['npc2'], 'name': npc2_name, 'symbol': tpl2['symbol'], 'color': tpl2['color'],
             'role': kind + '_specialist', 'faction': owner, 'homeScene': first, 'dialogue': ids['dlg2'],
             'desc': '在 ' + name + ' 干活的' + tpl2['role'] + '。'}
@@ -478,22 +558,31 @@ def site_actions(n, name, narr, node_id):
 
 
 def hub_cell(scene_id='station_command'):
+    """找一格「实心、且挨着可走格」的地方放世界地图终端。
+    以前只扫内部（range(1, h-1)），中央大厅改成开阔大 hall 之后内部再没有 '#'，
+    于是**每次都走兜底 (1,1)** —— 终端一直落在过道上，不是墙龛里，
+    这也正是签入仓库的 mods/generated_world/mod.json 无法由代码复现的原因。
+    现在先扫内部、再扫整张图，实在没有才兜底。"""
     for sc in GM.SPACE['scenes']['list']:
         if sc.get('id') != scene_id: continue
         tiles = sc.get('tiles') or []
         w = sc['size']['w']; h = sc['size']['h']
-        for y in range(1, h - 1):
-            for x in range(1, w - 1):
-                if tiles[y][x] != '#': continue
-                for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-                    if tiles[y + dy][x + dx] == '.': return x, y
+        for x0, x1, y0, y1 in ((1, w - 1, 1, h - 1), (0, w, 0, h)):
+            for y in range(y0, y1):
+                for x in range(x0, x1):
+                    if tiles[y][x] != '#': continue
+                    for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                        nx, ny = x + dx, y + dy
+                        if 0 <= nx < w and 0 <= ny < h and tiles[ny][nx] == '.':
+                            return x, y
     return 1, 1
 
 
-def build_site(rnd, s, i, sites):
+def build_site(rnd, s, i, sites, kind=None, cult=None):
     t = i / max(1, sites - 1)
-    kind = pick_kind(rnd, i, sites)
-    name = unique_name(rnd, SITE_NAMES)
+    if kind is None: kind = pick_kind(rnd, i, sites)
+    if cult is None: cult = FALLBACK_CULTURE
+    name = place_name(rnd, SITE_NAMES, cult, kind)
     nsc = 2 if kind in ('surface', 'ship', 'rift') else rnd.choice([2, 3])
     u_id = 'gw_%s_s%02d_u' % (s, i + 1)
     for attempt in range(12):
@@ -552,7 +641,13 @@ def generated_return_unsafe(doc):
 
 def make_world(seed, sites):
     global SITE_NAMES
-    SITE_NAMES = set()
+    # 起名用的「已占用」集合先把**手写层已有的地名**装进去 ——
+    # 这样生成出来的站点不会和 content/space.json 里那些手写节点（索尔 / 帷幕星云 / 铁砧…）重名。
+    # 手写层和生成层从此是同一张命名表上的两批名字，而不是各说各话。
+    SITE_NAMES = {n.get('name') for n in (GM.SPACE.get('galaxy') or {}).get('nodes', []) if n.get('name')}
+    SITE_NAMES |= {(s.get('name') or '') for s in (GM.SPACE.get('scenes') or {}).get('list', [])}
+    SITE_NAMES.discard('')
+    by_owner, cults, fallback, cult_problems = load_cultures()
     rnd = random.Random('world|%s|%d' % (seed, sites))
     s = sid_of(seed)
     scenes, transitions, shuttles, rooms, nodes = [], [], [], [], []
@@ -567,7 +662,11 @@ def make_world(seed, sites):
 
     for i in range(sites):
         t = i / max(1, sites - 1)
-        kind, name, site_scenes, trs, under_id = build_site(rnd, s, i, sites)
+        # 归属与种类都要在起名之前定：地名用的是**归属方**的语言。
+        kind = pick_kind(rnd, i, sites)
+        owner = pick_owner(rnd, t, kind)
+        cult = culture_for(by_owner, fallback, owner)
+        kind, name, site_scenes, trs, under_id = build_site(rnd, s, i, sites, kind, cult)
         scenes.extend(site_scenes); transitions.extend(trs)
         for sc in site_scenes:
             rooms.append({'id': sc['id'], 'name': sc['name'], 'scene': sc['id'], 'type': sc['type']})
@@ -575,7 +674,6 @@ def make_world(seed, sites):
         rad = 3.0 + i * 1.05
         x = max(0, min(32, int(round(10 + rad * math.cos(ang)))))
         y = max(0, min(26, int(round(14 + rad * math.sin(ang)))))
-        owner = pick_owner(rnd, t, kind)
         poll = rnd.randint(0, 2 if t < 0.34 else (4 if t < 0.67 else 8))
         fleets = rnd.randint(0, 3)
         first = site_scenes[0]['id']
@@ -589,7 +687,7 @@ def make_world(seed, sites):
         counters['gw_st_' + n] = 0
         resources.append({'id': 'gw_st_' + n, 'name': '站点状态：' + name, 'amount': 0, 'unit': '级', 'carried': False})
 
-        content = build_site_content(rnd, s, i, kind, name, site_scenes, owner, narr, first, under_id, node_id)
+        content = build_site_content(rnd, s, i, kind, name, site_scenes, owner, narr, first, under_id, node_id, cult)
         if content is None:
             raise RuntimeError('站点 %d 放不下站内内容（没有可用的墙 / 地板格）' % (i + 1))
         npcs.append(content['npc']); schedules.append(content['schedule']); dialogues.append(content['dialogue'])
@@ -749,6 +847,34 @@ def selftest():
             if not scn: bad.append('日程场景不存在 ' + slot['scene']); continue
             row = scn[0]['tiles'][slot['y']]
             if slot['x'] >= len(row) or row[slot['x']] != '.': bad.append('日程点不是地板 ' + sch['id'])
+    # ---- 命名（第 2 期）：文化表要真的被用上，而且不许和手写层撞车 ----
+    by_owner, cults, fallback, cult_problems = load_cultures()
+    for p in cult_problems:
+        bad.append('文化表：' + p)
+    hand = {n.get('name') for n in (GM.SPACE.get('galaxy') or {}).get('nodes', []) if n.get('name')}
+    site_names = [n['name'] for n in nd]
+    if len(site_names) != len(set(site_names)):
+        dup = [x for x in site_names if site_names.count(x) > 1]
+        bad.append('站点名有重复：' + ','.join(sorted(set(dup))[:3]))
+    clash = sorted(set(site_names) & hand)
+    if clash: bad.append('生成的地名和手写层重名：' + ','.join(clash[:3]))
+    words = {c['id']: (set(c['placeA']) | set(c.get('placeB') or [])) for c in cults}
+    for n in nd:
+        o = n.get('owner')
+        if o not in by_owner:
+            bad.append('派系 %s 没有认领任何文化（会走兜底 %s）' % (o, fallback['id'])); continue
+        c = by_owner[o]
+        stem = n['name'].split(SEP)[0]
+        # 词干必须由「这个派系的文化的词」拼出来（允许 A、A+B 两种长度）
+        a = [w for w in c['placeA'] if stem.startswith(w)]
+        if not a:
+            bad.append('%s（%s）的名字 %s 用了 %s 的词表以外的字' % (n['name'], o, stem, c['id'])); continue
+        rest = stem[len(max(a, key=len)):]
+        if rest and rest not in set(c.get('placeB') or []):
+            bad.append('%s（%s）的词干后缀 %r 不在 %s 的 placeB 里' % (n['name'], o, rest, c['id']))
+        suf = n['name'].split(SEP)[-1]
+        if suf not in SUF_ALL:
+            bad.append('%s 的类型词 %s 不认识' % (n['name'], suf))
     print('世界生成自检：%s' % ('OK' if not bad else '失败 %d' % len(bad)))
     for x in bad: print('  ' + x)
     return 1 if bad else 0

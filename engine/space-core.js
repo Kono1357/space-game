@@ -535,7 +535,7 @@ registerEffect('rest', function(g, e){
    所以 test_arch.js 会拿内容里真实存在的块逐个校对。 */
 var SPACE_BLOCKS = ['sceneTypes','scenes','rooms','interactables','npcs','schedules','dialogues',
                     'dialoguePools','shuttles','sceneTransitions','views','projections',
-                    'events','eventChains','npcApproach','textPools','factions','internalPolitics',
+                    'events','eventChains','npcApproach','textPools','factions','nameCultures','internalPolitics',
                     'leaders','planetTypes','fleets','fleetModules','facilities','colonies','medical','armory','mine','farm','defense',
                     'resources','relics','missions','crisisStages','victoryConditions','defeatConditions',
                     'diplomacy','techTree','macros','hooks','saveMigrations'];
