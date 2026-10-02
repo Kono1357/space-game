@@ -554,7 +554,7 @@ var SPACE_BLOCKS = ['sceneTypes','scenes','rooms','interactables','npcs','schedu
                     'dialoguePools','shuttles','sceneTransitions','views','projections',
                     'events','eventChains','npcApproach','textPools','factions','nameCultures','internalPolitics',
                     'leaders','planetTypes','fleets','fleetModules','facilities','colonies','medical','armory','mine','farm','defense',
-                    'resources','relics','missions','crisisStages','victoryConditions','defeatConditions',
+                    'resources','items','relics','missions','crisisStages','victoryConditions','defeatConditions',
                     'diplomacy','techTree','macros','hooks','saveMigrations'];
 /* 嵌套在别的块里的 id 列表（diplomacy.actions 这种） */
 var NESTED_BLOCKS = ['galaxy.nodes', 'techTree.list', 'techTree.branches', 'diplomacy.actions', 'tutorial.steps'];

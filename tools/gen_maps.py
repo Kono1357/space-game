@@ -178,7 +178,11 @@ def paint_terrain(grid, field, biome):
     return biome
 
 
-SOLID_CHARS = ('#', '^', '~', '%')
+# 「什么算实心」必须和 map_rules 口径一致 —— 它是按**可走矩阵**算的（不可走 = 实心），
+# 所以墙、地形障碍、**实心家具（t/m）和容器（c/r）**都算。
+# 漏掉家具的话，2 格墙 + 2 格柜子凑出的 4x4 在 break_big_masses 眼里不存在，
+# 而 map_rules 会报 R6 —— 实测就是这三条警告的来源。
+SOLID_CHARS = ('#', '^', '~', '%', 't', 'm', 'c', 'r')
 # 群系障碍物字符 -> 预设名（写进场景 legend，见 gen_scene）
 BIOME_PRESET = {'^': 'rock', '~': 'liquid', '%': 'flora'}
 
@@ -239,20 +243,28 @@ def break_big_masses(grid, limit=8, ch='.'):
     return False
 
 
-def gen_surface(grid, rnd, kind, biome=None):
+def gen_surface(grid, rnd, kind, biome=None, out=None):
     """地表：噪声出连贯地形，群系决定形状与材质。"""
+    out = out if out is not None else {'props': [], 'legend': {}}
     b = BIOMES[biome] if isinstance(biome, str) else (biome or BIOMES[DEFAULT_BIOME])
     H, W = len(grid), len(grid[0])
     carve(grid, 1, 1, W - 2, H - 2)
     seed = rnd.randint(1, 1 << 30)
     field = fbm(W, H, seed, b['octaves'], max(5.0, min(W, H) * b['ratio']))
     paint_terrain(grid, field, b)
+    if SURFACE_BUILDINGS:
+        want = rnd.randint(3, 5); got = 0
+        for _ in range(want * 30):
+            if got >= want: break
+            bw = rnd.choice([12, 14, 16]); bh = rnd.choice([8, 10])
+            bx = rnd.randint(2, max(2, W - bw - 2)); by = rnd.randint(2, max(2, H - bh - 2))
+            if stamp_building(grid, rnd, bx, by, bw, bh, 'planet_surface', out): got += 1
     largest_region_only(grid, (W // 2, H // 2))
     break_big_masses(grid, 8)          # 必须在封岛之后：通道要连到已有可走区
-    return b
+    return {'biome': b, 'props': out['props'], 'legend': out['legend']}
 
 
-def gen_rift(grid, rnd, kind, biome=None):
+def gen_rift(grid, rnd, kind, biome=None, out=None):
     """地下 / 裂隙：同样是连贯场，但结构更粗（洞窟成群，不是均匀麻点）。"""
     b = BIOMES[biome] if isinstance(biome, str) else (biome or BIOMES['cave'])
     H, W = len(grid), len(grid[0])
@@ -262,7 +274,19 @@ def gen_rift(grid, rnd, kind, biome=None):
     paint_terrain(grid, field, b)
     largest_region_only(grid, (W // 2, H // 2))
     break_big_masses(grid, 8)          # 必须在封岛之后：通道要连到已有可走区
-    return b
+    out = out if out is not None else {'props': [], 'legend': {}}
+    cells = [(x, y) for y in range(1, H - 1) for x in range(1, W - 1) if grid[y][x] == '.']
+    rnd.shuffle(cells)
+    want = max(2, len(cells) // 45)
+    for (x, y) in cells:
+        if len(out['legend'].get('_n', [])) >= want: break
+        ch = 'r' if rnd.random() < 0.55 else 'c'
+        if not _safe_spot(grid, x, y, True): continue
+        grid[y][x] = ch
+        out['legend'][ch] = {'interactable': 'loot_crate' if ch == 'r' else 'loot_locker'}
+        out['legend'].setdefault('_n', []).append(1)
+    out['legend'].pop('_n', None)
+    return {'biome': b, 'props': [], 'legend': out['legend']}
 
 
 def largest_region_only(grid, seed):
@@ -353,14 +377,203 @@ def carve_doors(grid, rnd, n):
     return out
 
 
-def gen_station(grid, rnd, kind):
+
+# ============================== 建筑与家具（第 1 期）==============================
+# 改之前：一张 72x24 的生成地图是 {#:468, +:6, .:1254} —— 全是空地板，零个物件。
+#
+# 现在按 CDDA 的做法：**房间里有家具、柜子和货箱能翻出东西**。
+# 但有一条硬约束（作者明确要求，也正是 R6 的本意）：
+#     **房子里不许出现连成一片、走不过去的实心块。**
+# CDDA 的房子是「1 格厚的桌排、柜排」，人能绕着走；不是一坨方块。
+# 所以 `_no_2x2` 卡住每一件实心家具：放下去之后一旦出现 2x2 全实心就不放。
+# 这样家具永远是 1 格厚，R6（室内上限 3）**原封不动**就能过 —— 不用放宽任何规则。
+#
+# 可搜刮容器走**图例字符**这条路，不走 scene.props：
+#   图例的引擎/规则一致性被测了 800 多项，props 那条路规则侧还没跟上。
+FURN = {'bed': 'b', 'table': 't', 'machine': 'm', 'plant': 'v'}
+FURN_PRESET = {v: k for k, v in FURN.items()}
+PASSABLE_FURN = ('b', 'v')                  # 床和盆栽能跨过去，不算实心
+SOLID_SET = set('#^~%tmrc')                 # 墙 + 地形障碍 + 实心家具 + 容器
+STYLE = {
+ 'space_station': [('bed', 3), ('table', 3), ('machine', 4), ('plant', 2)],
+ 'colony':        [('bed', 5), ('table', 4), ('plant', 4), ('machine', 2)],
+ 'ship_interior': [('bed', 3), ('machine', 5), ('table', 2)],
+ 'planet_surface':[('machine', 3), ('table', 4), ('bed', 2)],
+ 'rift_interior': [('machine', 3), ('table', 2)],
+}
+PROP_RATIO = {'space_station': 0.18, 'colony': 0.15, 'ship_interior': 0.20,
+              'planet_surface': 0.24, 'rift_interior': 0.16}
+FURNISH = True                 # 室内摆家具（作者要的就是这个：房子里有东西、但没有实心块）
+SURFACE_BUILDINGS = False      # 地表盖楼：单独跑 5/5 成功，接进 gen_scene 之后
+                               # 盖成楼的那几次仍会被某条规则拒掉，gen_scene 重试到最后
+                               # 返回的是"楼没盖成"的那次。已经排掉：门外清空地、避开贴边、
+                               # 盖完验连通、家具不许连成 2x2。还没定位到剩下的那条，
+                               # 所以先关掉，别带着自检失败交付。
+
+
+def _no_2x2(grid, x, y):
+    """在 (x,y) 放一个实心格之后，会不会凑出 2x2 全实心？
+
+    会就不放 —— 家具保持 1 格厚，人绕得过去，R6（室内上限 3）也永远不会被顶穿。
+    （这是作者点名要的：房子里不要有连成几块的实心墙。参考 CDDA 的家具摆法。）
+    """
+    H, W = len(grid), len(grid[0])
+    for ox, oy in ((0, 0), (-1, 0), (0, -1), (-1, -1)):
+        allsol = True
+        for dx in (0, 1):
+            for dy in (0, 1):
+                cx, cy = x + ox + dx, y + oy + dy
+                if cx == x and cy == y: continue
+                if not (0 <= cx < W and 0 <= cy < H) or grid[cy][cx] not in SOLID_SET:
+                    allsol = False; break
+            if not allsol: break
+        if allsol: return False
+    return True
+
+
+def _safe_spot(grid, x, y, solid):
+    """这一格能不能放东西：只有 1~2 个可走邻居的格子是咽喉，堵住会把地图切成两块。"""
+    H, W = len(grid), len(grid[0])
+    n = 0
+    for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        nx, ny = x + dx, y + dy
+        if 0 <= nx < W and 0 <= ny < H and grid[ny][nx] == '.': n += 1
+    if n < 3: return False
+    if solid and not _no_2x2(grid, x, y): return False
+    return True
+
+
+def _pick(rnd, style):
+    tot = sum(w for _, w in style); r = rnd.random() * tot
+    for n, w in style:
+        r -= w
+        if r <= 0: return n
+    return style[0][0]
+
+
+def furnish_room(grid, rnd, x0, y0, x1, y1, stype, out, door_cells):
+    """给一个矩形房间摆家具。沿墙摆（中间留走道），实心的不许连成块。"""
+    W = x1 - x0 + 1; H = y1 - y0 + 1
+    if W < 4 or H < 4: return 0
+    style = STYLE.get(stype, STYLE['space_station'])
+    ratio = PROP_RATIO.get(stype, 0.18)
+    H0, W0 = len(grid), len(grid[0])
+    cells = []
+    for x in range(x0 + 1, x1):
+        cells.append((x, y0 + 1)); cells.append((x, y1 - 1))
+    for y in range(y0 + 2, y1 - 1):
+        cells.append((x0 + 1, y)); cells.append((x1 - 1, y))
+    cells = [(x, y) for (x, y) in cells if 2 <= x < W0 - 2 and 2 <= y < H0 - 2]
+    rnd.shuffle(cells)
+    placed = 0
+    for (x, y) in cells:
+        if grid[y][x] != '.': continue
+        if (x, y) in door_cells: continue
+        if rnd.random() > 0.34: continue
+        if rnd.random() < ratio:
+            if not _safe_spot(grid, x, y, True): continue
+            ch = 'r' if rnd.random() < 0.4 else 'c'
+            grid[y][x] = ch
+            out['legend'][ch] = {'interactable': 'loot_crate' if ch == 'r' else 'loot_locker'}
+        else:
+            nm = _pick(rnd, style)
+            ch = FURN[nm]
+            solid = ch not in PASSABLE_FURN
+            if not _safe_spot(grid, x, y, solid): continue
+            grid[y][x] = ch
+            out['legend'][ch] = {'preset': FURN_PRESET[ch]}
+        placed += 1
+    return placed
+
+
+def stamp_building(grid, rnd, bx, by, bw, bh, stype, out):
+    """盖一栋建筑：外墙 + 内部分房 + 门（门外清一块空地）+ 房间摆家具。"""
+    H, W = len(grid), len(grid[0])
+    if bx < 2 or by < 2 or bx + bw > W - 2 or by + bh > H - 2: return False
+    for y in range(by, by + bh):
+        for x in range(bx, bx + bw):
+            if grid[y][x] in ('#', '+'): return False
+    for y in range(by + 1, by + bh - 1):
+        for x in range(bx + 1, bx + bw - 1): grid[y][x] = '.'
+    for x in range(bx, bx + bw):
+        grid[by][x] = '#'; grid[by + bh - 1][x] = '#'
+    for y in range(by, by + bh):
+        grid[y][bx] = '#'; grid[y][bx + bw - 1] = '#'
+    rooms = [(bx + 1, by + 1, bx + bw - 2, by + bh - 2)]
+    for _ in range(1):
+        nxt = []
+        for (x0, y0, x1, y1) in rooms:
+            w = x1 - x0 + 1; h = y1 - y0 + 1
+            if max(w, h) < 9: nxt.append((x0, y0, x1, y1)); continue
+            if w >= h:
+                mx = x0 + rnd.randint(4, w - 5)
+                for y in range(y0, y1 + 1): grid[y][mx] = '#'
+                grid[y0 + rnd.randint(1, h - 2)][mx] = '+'
+                nxt.append((x0, y0, mx - 1, y1)); nxt.append((mx + 1, y0, x1, y1))
+            else:
+                my = y0 + rnd.randint(4, h - 5)
+                for x in range(x0, x1 + 1): grid[my][x] = '#'
+                grid[my][x0 + rnd.randint(1, w - 2)] = '+'
+                nxt.append((x0, y0, x1, my - 1)); nxt.append((x0, my + 1, x1, y1))
+        rooms = nxt
+    side = rnd.choice(['N', 'S', 'W', 'E'])
+    if side == 'N': dx, dy = bx + rnd.randint(3, bw - 4), by
+    elif side == 'S': dx, dy = bx + rnd.randint(3, bw - 4), by + bh - 1
+    elif side == 'W': dx, dy = bx, by + rnd.randint(3, bh - 4)
+    else: dx, dy = bx + bw - 1, by + rnd.randint(3, bh - 4)
+    grid[dy][dx] = '+'
+    for k in range(1, 6):
+        ax = dx + (0 if side in ('N', 'S') else (k if side == 'E' else -k))
+        ay = dy + (k if side == 'S' else (-k if side == 'N' else 0))
+        if 1 <= ax < W - 1 and 1 <= ay < H - 1 and grid[ay][ax] not in ('#', '+'): grid[ay][ax] = '.'
+    dc = set()
+    for y in range(by, by + bh):
+        for x in range(bx, bx + bw):
+            if grid[y][x] == '+': dc.add((x, y))
+    for r in rooms: furnish_room(grid, rnd, r[0], r[1], r[2], r[3], stype, out, dc)
+    # **盖完立刻验连通**：楼里必须能走到外面去。
+    # 不验的话，一栋门正好开在岩石堆里的楼会被 largest_region_only 整体封成实心块，
+    # 撞 R6 -> gen_scene 判定这次生成失败 -> 重试 -> 最后返回的是"楼没盖成"的那次
+    # （地表因此平均只剩 3~4 件家具，白盖）。宁可撤掉这一栋，也不能让它毒死整张图。
+    snap = [[grid[y][x] for x in range(max(0, bx - 1), min(W, bx + bw + 1))]
+            for y in range(max(0, by - 1), min(H, by + bh + 1))]
+    start = None
+    for y in range(by + 1, by + bh - 1):
+        for x in range(bx + 1, bx + bw - 1):
+            if grid[y][x] == '.': start = (x, y); break
+        if start: break
+    ok = False
+    if start:
+        seen = {start}; stack = [start]
+        while stack:
+            cx, cy = stack.pop()
+            if cx < bx - 2 or cx > bx + bw + 1 or cy < by - 2 or cy > by + bh + 1:
+                ok = True; break                      # 走出楼的包围盒 = 接上外面了
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                nx, ny = cx + dx, cy + dy
+                if 0 <= nx < W and 0 <= ny < H and grid[ny][nx] == '.' and (nx, ny) not in seen:
+                    seen.add((nx, ny)); stack.append((nx, ny))
+    if not ok:
+        for y in range(max(0, by - 1), min(H, by + bh + 1)):
+            for x in range(max(0, bx - 1), min(W, bx + bw + 1)):
+                grid[y][x] = snap[y - max(0, by - 1)][x - max(0, bx - 1)]
+        return False
+    return True
+
+
+def gen_station(grid, rnd, kind, out=None):
+    out = out if out is not None else {'props': [], 'legend': {}}
     rooms = []; bsp_rooms(grid, rnd, rooms, 1, 1, len(grid[0]) - 2, len(grid) - 2, 4)
     rooms.sort(key=lambda r: (r[0], r[1]))
     for i in range(len(rooms) - 1): corridor(grid, rooms[i], rooms[i + 1])
     pillars(grid, rnd, rooms)
+    if FURNISH:
+        for r in rooms: furnish_room(grid, rnd, r[0], r[1], r[2], r[3], 'space_station', out, set())
+    return out
 
 
-def gen_colony(grid, rnd, kind):
+def gen_colony(grid, rnd, kind, out=None):
+    out = out if out is not None else {'props': [], 'legend': {}}
     rooms = []
     bsp_rooms(grid, rnd, rooms, 1, 1, len(grid[0]) - 2, len(grid) - 2, 4)
     rooms.sort(key=lambda r: (r[0], r[1]))
@@ -372,9 +585,13 @@ def gen_colony(grid, rnd, kind):
             px = rnd.randint(x0 + 3, max(x0 + 3, x1 - 6)); py = rnd.randint(y0 + 3, max(y0 + 3, y1 - 6))
             for y in range(py, min(y1 - 1, py + 2)):
                 for x in range(px, min(x1 - 1, px + 2)): grid[y][x] = '#'
+    if FURNISH:
+        for r in rooms: furnish_room(grid, rnd, r[0], r[1], r[2], r[3], 'colony', out, set())
+    return out
 
 
-def gen_ship(grid, rnd, kind):
+def gen_ship(grid, rnd, kind, out=None):
+    out = out if out is not None else {'props': [], 'legend': {}}
     H, W = len(grid), len(grid[0])
     mid = H // 2
     carve(grid, 1, mid - 1, W - 2, mid + 1)                     # 主龙骨走廊（3 格宽）
@@ -384,7 +601,14 @@ def gen_ship(grid, rnd, kind):
         carve(grid, bx, mid, bx + 1, bot)                        # 下支路
         carve(grid, bx - 4, top - 1, bx + 6, top + 2)            # 上舱室
         carve(grid, bx - 4, bot - 2, bx + 6, bot + 1)            # 下舱室
+        if FURNISH:
+            furnish_room(grid, rnd, bx - 5, top - 2, bx + 7, top + 3, 'ship_interior', out, set())
+            furnish_room(grid, rnd, bx - 5, bot - 3, bx + 7, bot + 2, 'ship_interior', out, set())
     largest_region_only(grid, (W // 2, mid))
+    break_big_masses(grid, 3)      # R6 室内上限 3：封岛+家具会凑出 6x6，打穿它
+    break_big_masses(grid, 3)      # R6 室内上限 3：封岛+家具会凑出 6x6，打穿它
+    break_big_masses(grid, 3)      # R6 室内上限 3：封岛+家具会凑出 6x6，打穿它
+    return out
 
 
 GEN = {'station': gen_station, 'colony': gen_colony, 'surface': gen_surface, 'ship': gen_ship, 'rift': gen_rift, 'under': gen_rift}
@@ -404,8 +628,9 @@ def gen_scene(kind, seed, sid=None, doors=None, biome=None, planet_type=None):
         rnd = random.Random('%s|%s|%d' % (kind, seed, attempt))
         W, H = rnd.choice(KINDS[kind]['sizes'])
         grid = blank(W, H)
-        if noisy: GEN[kind](grid, rnd, kind, b)
-        else:     GEN[kind](grid, rnd, kind)
+        acc = {'props': [], 'legend': {}}
+        res = GEN[kind](grid, rnd, kind, b, acc) if noisy else GEN[kind](grid, rnd, kind, acc)
+        if isinstance(res, dict) and 'biome' in res: b = res['biome']
         n_doors = doors if doors else rnd.randint(2, 4)
         door_cells = carve_doors(grid, rnd, n_doors)
         if not door_cells: continue
@@ -414,7 +639,7 @@ def gen_scene(kind, seed, sid=None, doors=None, biome=None, planet_type=None):
         # 群系用的障碍物字符写进**场景自己的 legend**，不占全局 defaultLegend：
         # 全局表是深度合并进每个场景的，往里加一个别的场景已经用过的字符会把那个场景的意思改掉
         # （踩过：% 和 ~ 在中央大厅里是「通向 X」的通道，加进全局表后全变成墙）。
-        legend = {}
+        legend = dict(acc['legend'])
         if b: legend[b['solid']] = {'preset': BIOME_PRESET[b['solid']]}
         scene = {'id': sid or ('gen_%s_%s' % (kind, seed)), 'name': KINDS[kind]['name'],
                  'type': KINDS[kind]['type'], 'size': {'w': W, 'h': H}, 'tiles': tiles,

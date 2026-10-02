@@ -289,8 +289,10 @@ else {
   ok('一个世界里出现 >= 3 种地貌 ★', names.length >= 3, JSON.stringify(W.biomes));
   ok('地貌名写进了场景 ambient（走进去按 X 看得到）★',
      Object.keys(W.biomes).every(function (n){ return n && n.length >= 2; }), names.join(','));
-  ok('障碍物字符是 ^ / ~ / % 与墙 #，没有冒出没登记的字符 ★',
-     Object.keys(W.chars).every(function (c){ return '#.+^~%'.indexOf(c) >= 0; }),
+  /* 第 1 期加了家具与容器（b 床 / t 桌 / m 机器 / v 盆栽 / c 柜 / r 货箱）——
+     允许集合要跟着放开，但仍然要求**没有冒出没登记的字符**。 */
+  ok('地图字符都在登记表里（墙/地板/门/地形/家具/容器）★',
+     Object.keys(W.chars).every(function (c){ return '#.+^~%btmvcr'.indexOf(c) >= 0; }),
      Object.keys(W.chars).join(''));
   console.log('       地貌分布：' + Object.keys(W.biomes).map(function (k){ return k + '×' + W.biomes[k]; }).join('  '));
 }

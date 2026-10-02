@@ -1,7 +1,7 @@
 # 朔  场景层框架  项目说明书（AI 上下文文件）
 
 > 本文件由脚本扫描仓库生成（数字、字段、示例均从真实文件现算/现摘，未手抄）。
-> 生成时间：2026-10-02 10:12 +08:00　|　生成时基线：`node tests/run_all.js` 通过 868 / 失败 0
+> 生成时间：2026-10-02 10:43 +08:00　|　生成时基线：`node tests/run_all.js` 通过 868 / 失败 0
 > 位置：`D:/大肥鱼工作区/朔/space/AI_CONTEXT.md`
 
 ## 怎么用这份文件
@@ -31,7 +31,7 @@
 
 三条铁律：**内核不认内容 / 内容不写代码 / 一切皆 id 皆可合并**。
 四条不变量（每条都有测试守）：内核不认内容（内容只用注册词表）、
-块登记表合并不覆盖（`SPACE_BLOCKS` 41 + `NESTED_BLOCKS` 5）、
+块登记表合并不覆盖（`SPACE_BLOCKS` 42 + `NESTED_BLOCKS` 5）、
 坏数据只降级不崩（`report.errors/warnings`）、存档 = 世界快照（`world` 字段要么进档要么在派生白名单）。
 
 现状（生成时实测）：构建 exit 0；`node tests/run_all.js` **868 项全绿**；
@@ -71,7 +71,7 @@
 ```
   .gitignore                                     14 行      0.3 KB
   .perf_slack                                     2 行      0.0 KB
-  AI_CONTEXT.md                                 868 行     65.1 KB
+  AI_CONTEXT.md                                 869 行     65.1 KB
   CONTRIBUTING.md                               171 行     11.8 KB
   DESIGN.md                                     392 行     32.3 KB
   DEVLOG.md                                    1052 行     95.2 KB
@@ -79,18 +79,18 @@
   README.md                                     645 行     45.5 KB
   VISION.md                                      88 行      5.4 KB
   build_space.py                                167 行      8.1 KB
-  content/space.json                          39980 行    833.7 KB
+  content/space.json                          40272 行    839.4 KB
   engine/space-core.js                         3837 行    185.5 KB
   engine/space-textout.js                       194 行      8.0 KB
   engine/space-textshell.js                     471 行     23.6 KB
   index.html                                     22 行      0.9 KB
   mods/example_mod/README.md                     36 行      1.7 KB
   mods/example_mod/mod.json                     277 行      6.2 KB
-  mods/generated_world/mod.json               23578 行    575.9 KB
+  mods/generated_world/mod.json               24004 行    579.7 KB
   preview_probe.png                             二进制     42.9 KB
   preview_text.png                              二进制     69.5 KB
   probe.html                                    119 行      5.3 KB
-  space-text.html                              4567 行   1139.5 KB
+  space-text.html                              4567 行   1143.3 KB
   space-text.tpl.html                            67 行      3.5 KB
   tests/fixtures/mod_bad_culture.json            53 行      1.1 KB
   tests/fixtures/mod_new_culture.json            41 行      0.9 KB
@@ -105,13 +105,13 @@
   tests/test_shell.js                           404 行     21.7 KB
   tests/test_space.js                           359 行     19.7 KB
   tests/test_strategy.js                        371 行     18.3 KB
-  tests/test_terrain.js                         313 行     16.0 KB
+  tests/test_terrain.js                         315 行     16.2 KB
   tests/test_text.js                             96 行      5.8 KB
   tests/test_validate.js                        192 行     10.2 KB
   tests/test_world.js                           957 行     54.0 KB
   tools/browser_check.js                        365 行     20.9 KB
   tools/galaxy_links.py                         189 行      8.3 KB
-  tools/gen_maps.py                             740 行     35.7 KB
+  tools/gen_maps.py                             965 行     47.2 KB
   tools/gen_world.py                            961 行     54.0 KB
   tools/map_rules.py                            381 行     17.7 KB
   tools/preview.js                               94 行      3.4 KB
@@ -179,7 +179,7 @@
 ### 3.4 生成时实测
 
 ```
-python build_space.py         -> exit 0（space-text.html 1139.5 KB，起手模板已编入）
+python build_space.py         -> exit 0（space-text.html 1143.3 KB，起手模板已编入）
 node tests/run_all.js         -> exit 0  合计：通过 868 / 失败 0
 python tools/validate_space.py -> exit 0  错误 0 / 警告 0
 node tools/preview.js 80 24   -> exit 0（终端里打印画面）
@@ -785,7 +785,7 @@ node --check engine/space-core.js     # 改引擎后先过语法
 
 | 检查 | 命令 | 结果 |
 |---|---|---|
-| 构建 | `python build_space.py` | exit 0，`space-text.html` 1139.5 KB |
+| 构建 | `python build_space.py` | exit 0，`space-text.html` 1143.3 KB |
 | 回归 | `node tests/run_all.js` | exit 0，通过 868 / 失败 0 |
 | 内容校验 | `python tools/validate_space.py` | exit 0，错误 0 / 警告 0 |
 | 预览 | `node tools/preview.js 80 24` | exit 0 |
@@ -799,7 +799,7 @@ node --check engine/space-core.js     # 改引擎后先过语法
 | `sceneTypes` | 5 | {list} |
 | `scenes` | 25 | {list} |
 | `rooms` | 25 | {list} |
-| `interactables` | 22 | {list} |
+| `interactables` | 24 | {list} |
 | `npcs` | 38 | {list} |
 | `schedules` | 38 | {list} |
 | `shuttles` | 7 | {list} |
@@ -837,13 +837,14 @@ node --check engine/space-core.js     # 改引擎后先过语法
 | `crisisStages` | 6 | {list} |
 | `victoryConditions` | 7 | {list} |
 | `defeatConditions` | 7 | {list} |
+| `items` | 10 | {list} |
 | `galaxy.nodes` | 48 | 嵌套数组 |
 | `techTree.branches` | 6 | 嵌套数组 |
 | `diplomacy.actions` | 30 | 嵌套数组 |
 | `tutorial.steps` | 5 | 嵌套数组 |
 | `techTree.list` | 72 | 嵌套（顶层块同名的 .list）|
 
-`SPACE_BLOCKS`（41）：`sceneTypes` `scenes` `rooms` `interactables` `npcs` `schedules` `dialogues` `dialoguePools` `shuttles` `sceneTransitions` `views` `projections` `events` `eventChains` `npcApproach` `textPools` `factions` `nameCultures` `internalPolitics` `leaders` `planetTypes` `fleets` `fleetModules` `facilities` `colonies` `medical` `armory` `mine` `farm` `defense` `resources` `relics` `missions` `crisisStages` `victoryConditions` `defeatConditions` `diplomacy` `techTree` `macros` `hooks` `saveMigrations`
+`SPACE_BLOCKS`（42）：`sceneTypes` `scenes` `rooms` `interactables` `npcs` `schedules` `dialogues` `dialoguePools` `shuttles` `sceneTransitions` `views` `projections` `events` `eventChains` `npcApproach` `textPools` `factions` `nameCultures` `internalPolitics` `leaders` `planetTypes` `fleets` `fleetModules` `facilities` `colonies` `medical` `armory` `mine` `farm` `defense` `resources` `items` `relics` `missions` `crisisStages` `victoryConditions` `defeatConditions` `diplomacy` `techTree` `macros` `hooks` `saveMigrations`
 
 `NESTED_BLOCKS`（5）：`galaxy.nodes` `techTree.list` `techTree.branches` `diplomacy.actions` `tutorial.steps`
 
