@@ -2696,10 +2696,20 @@ Game.prototype.logLine = function(e){
  * 窄屏：标题 / 状态 / 地图 / 日志（日志在下方）
  * 侧栏模式把纵向空间全留给地图，地图能大 30% 以上。
  * ------------------------------------------------------------------ */
-/* 固定视口（viewW x viewH）：字号、分栏、相机都以它为准，跟当前场景多大无关。
-   来源：config.viewW / config.viewH -> config.mapDesignCols/Rows（旧名）-> 全部场景的最大宽高。
-   旧存档没有这个字段时按这条链推导，不会炸。 */
-Game.prototype.getViewSize = function(){
+/* ────────────────────────── 两个"取景框"，别混 ──────────────────────────
+   ① 设计取景框 designBox()：config.viewW/viewH（88×24）。**只用来定字号**——
+      它保证换场景时字号不跳（房间 60x22 → 大厅 64x36 → 地表 88x28 都是一个字号）。
+   ② 实际取景框 getViewSize()：屏幕上真正能放下多少格（由 layout() 算好）。
+      相机、居中、滚动、点击反算，全部以它为准。
+
+   以前只有一个 getViewSize()，干了两件事。在手机上就出事了（2026-10-02 实测）：
+     屏幕 40 列 × 44 行，设计框 88×24，而窗口被夹成 min(设计, 地图区)：
+       · 宽：窗口 40，可相机拿的却是设计值 88 > 场景宽 72 → 判定"地图整个放得下"，
+         把 72 列居中塞进 40 列窗口 → 两边各切 16 列，**而且永远不滚动**：
+         人往右走就走出了屏幕，地图两端再也看不到（用户原话「看不完整地图」）。
+       · 高：窗口固定 24 行，居中在 42 行里 → 上下各白掉 9 行（「地图显示不出来」）。
+   拆开之后：字号看设计框，窗口/相机看实际格数。 */
+Game.prototype.designBox = function(){
   var cfg = this.cfg || {};
   var w = num(cfg.viewW, 0) || num(cfg.mapDesignCols, 0);
   var h = num(cfg.viewH, 0) || num(cfg.mapDesignRows, 0);
@@ -2711,32 +2721,39 @@ Game.prototype.getViewSize = function(){
     }
     w = w || mw; h = h || mh;
   }
-  this.viewW = Math.max(24, w | 0); this.viewH = Math.max(12, h | 0);
+  return { w: Math.max(24, w | 0), h: Math.max(12, h | 0) };
+};
+/* 实际取景框：layout() 每次都会按当前屏幕算好缓存在 viewW/viewH。
+   还没 layout 过时（比如内容里主动问一句）退回设计取景框，不至于崩。 */
+Game.prototype.getViewSize = function(){
+  if (this.viewW && this.viewH) return { w: this.viewW, h: this.viewH };
+  var d = this.designBox();
+  this.viewW = d.w; this.viewH = d.h;
   return { w: this.viewW, h: this.viewH };
 };
-/* 固定取景框：字号按这个框算，而不是按当前场景算。
-   否则一换场景（房间 60x22 -> 大厅 64x36 -> 地表 88x28）字号就跳，画面会「割裂」。
-   框的大小来自 config.mapDesignCols/Rows；没写就取全部场景的最大宽高。 */
-Game.prototype.designBox = function(){ return this.getViewSize(); };   /* 旧名，保留兼容 */
 Game.prototype.layout = function(){
   var W = this.screenW, H = this.screenH;
   /* logRows 可以是 0：宿主（手机壳）把日志画在自己的浮层上，游戏这条就整块不画，
      地图因此多出「分隔线 + N 行」—— 见 hostRows('log') 与 ?log=0。 */
   var logRows = clamp(num(this.cfg.logRows, 3), 0, 6);
   var logBlock = logRows > 0 ? 1 + logRows : 0;        /* 有日志才有那条分隔线 */
-  var view = this.getViewSize();           /* 固定视口：分栏与否不随场景变 */
-  var side = (view.w >= 70 && view.h >= 18) ? clamp(Math.round(W * 0.26), 24, 42) : 0;
-  /* 开了侧栏就得保证地图区放得下整个视口，否则宁可不分栏 */
-  if (side && (W - side - 1) < view.w) side = 0;
+  var design = this.designBox();           /* 分栏与否看设计框（跟屏幕/场景都无关） */
+  var side = (design.w >= 70 && design.h >= 18) ? clamp(Math.round(W * 0.26), 24, 42) : 0;
+  /* 开了侧栏就得保证地图区放得下整个设计框，否则宁可不分栏 */
+  if (side && (W - side - 1) < design.w) side = 0;
   var mapTop = 2;                                  /* 0 标题  1 状态 */
   var mapW = side ? (W - side - 1) : W;
   var mapH = side ? Math.max(4, H - mapTop) : Math.max(4, H - mapTop - logBlock);
-  /* 视口窗口：在地图区里居中；比地图区还大就取地图区 */
-  var winW = Math.min(view.w, mapW), winH = Math.min(view.h, mapH);
-  var winX = Math.floor((mapW - winW) / 2), winY = mapTop + Math.floor((mapH - winH) / 2);
+  /* 实际窗口 = 整个地图区（不再被设计框夹住）。
+     相机、居中、滚动都以它为准 —— 手机竖屏上地图区又窄又高，夹成设计框的 88×24
+     就会「两边各切掉一截还不能滚」（见上面 getViewSize 的注释）。 */
+  var winW = mapW, winH = mapH;
+  var winX = 0, winY = mapTop;
+  this.viewW = winW; this.viewH = winH;    /* 缓存给 getViewSize() */
   return { W: W, H: H, side: side, sideX: side ? mapW : -1, mapW: mapW,
            mapTop: mapTop, mapH: mapH, logRows: logRows,
-           viewW: view.w, viewH: view.h, winX: winX, winY: winY, winW: winW, winH: winH,
+           viewW: winW, viewH: winH, designW: design.w, designH: design.h,
+           winX: winX, winY: winY, winW: winW, winH: winH,
            logBlock: logBlock,
            chromeRows: side ? mapTop : (mapTop + logBlock) };
 };
@@ -3115,7 +3132,13 @@ Game.prototype.render = function(){
   if (g){
     if (g.w <= view.w){ originX = Math.floor((winW - g.w) / 2); camX = 0; }
     else { camX = clamp(p.x - Math.floor(view.w / 2), 0, g.w - view.w); originX = -camX; }
-    if (g.h <= view.h){ originY = Math.floor((winH - g.h) / 2); camY = 0; }
+    /* 小图纵向怎么摆：默认居中（四周留空，看着像一幅画）；
+       宿主可以要求靠上（手机竖屏用）—— 屏幕高、房间矮，居中会在信息条下面留出一大条空白，
+       靠上则让地图紧贴信息条，多出来的空间全丢到底部（反正那里是拇指区）。 */
+    if (g.h <= view.h){
+      originY = num(this.cfg.mapTopAlign, 0) ? 0 : Math.floor((winH - g.h) / 2);
+      camY = 0;
+    }
     else { camY = clamp(p.y - Math.floor(view.h / 2), 0, g.h - view.h); originY = -camY; }
   }
   this._cam = { x: camX, y: camY, originX: originX, originY: originY,

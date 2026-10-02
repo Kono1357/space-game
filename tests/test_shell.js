@@ -202,15 +202,40 @@ ok('小场景（52x16）居中：originX > 0 且 originY > 0', camB.originX > 0 
    camB.originX + ',' + camB.originY);
 ok('小场景相机固定在 (0,0)', camB.x === 0 && camB.y === 0, camB.x + ',' + camB.y);
 
-/* 大场景：荒野 88x28，比视口高 -> 纵向滚动；玩家在中间时 originY < 0 */
+/* 荒野 88x28：现在「视口 = 整个地图区」，28 行放得下 -> 整张图可见、居中、不滚动。
+   （旧行为是窗口被设计框夹成 24 行、于是纵向滚动；手机上正是这个夹法把地图切了。） */
 var bigId = 'planet_wilderness', gbig = gV.grid(bigId);
+var vh = gV.layout().mapH;
 gV.teleport(bigId, Math.floor(gbig.w / 2), Math.floor(gbig.h / 2)); gV.render();
-ok('大场景（高 > 视口）玩家在中间时 originY < 0', gV._cam.originY < 0,
-   'originY=' + gV._cam.originY + ' 视口高 ' + gV.getViewSize().h + ' 场景高 ' + gbig.h);
-ok('大场景相机被 clamp 在边界内', gV._cam.y >= 0 && gV._cam.y <= gbig.h - gV.getViewSize().h,
-   gV._cam.y);
+ok('地图区放得下的场景：整张可见（居中、不滚动）',
+   gbig.h <= vh && gV._cam.y === 0 && gV._cam.originY >= 0,
+   '场景高 ' + gbig.h + ' 地图区 ' + vh + ' originY=' + gV._cam.originY);
+ok('视口 = 整个地图区（不再被设计取景框夹住）', vh === gV.screenH - 2 - (gV.layout().logRows > 0 ? 1 + gV.layout().logRows : 0),
+   'mapH=' + vh + ' screenH=' + gV.screenH);
 gV.teleport(bigId, Math.floor(gbig.w / 2), 0); gV.render();
 ok('玩家到场景上边缘时相机停在 0', gV._cam.y === 0, gV._cam.y);
+
+/* 真正比地图区高的场景才滚动：现造一张 20x60 的竖长图 */
+var tallTiles = [];
+for (var ty = 0; ty < 60; ty++){
+  var trow = '';
+  for (var tx = 0; tx < 20; tx++) trow += (tx === 0 || tx === 19 || ty === 0 || ty === 59) ? '#' : '.';
+  tallTiles.push(trow);
+}
+var tallSpec = { config: spec.config, palette: spec.palette, presets: spec.presets,
+  scenes: { list: [{ id: 'tall_shaft', name: '竖井', type: 'space_station', size: { w: 20, h: 60 },
+    tiles: tallTiles, legend: {}, exits: [] }] },
+  playerCharacter: { id: 'pc', name: '指挥官', symbol: '@', currentScene: 'tall_shaft', position: { x: 10, y: 30 } },
+  initialState: { counters: {}, items: {}, flags: {} } };
+var gt = Core.createGame(Core.load({ space: tallSpec }), {});
+gt.render();
+ok('比地图区高的场景：玩家在中间时 originY < 0（纵向滚动）', gt._cam.originY < 0,
+   'originY=' + gt._cam.originY + ' 地图区 ' + gt.layout().mapH + ' 场景 60');
+ok('纵向相机被 clamp 在边界内',
+   gt._cam.y >= 0 && gt._cam.y <= 60 - gt.getViewSize().h,
+   gt._cam.y + ' / ' + (60 - gt.getViewSize().h));
+gt.teleport('tall_shaft', 10, 0); gt.render();
+ok('玩家到上边缘时纵向相机停在 0', gt._cam.y === 0, gt._cam.y);
 
 /* 横向滚动：造一张比视口宽的图（预设里最宽 88 = 视口宽，所以要现造一张） */
 var wideTiles = [];

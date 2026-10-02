@@ -95,6 +95,11 @@ function boot(){
     return m ? Math.max(0, Math.min(6, Number(m[1]))) : -1;
   }
 
+  function hostFlag(name){
+    try { return new RegExp('[?&]' + name + '=1(&|$)').test(root.location.search || ''); }
+    catch (e) { return false; }
+  }
+
   function resize(){
     var vp = viewport();
     var cfg = built.space.config || {};
@@ -103,6 +108,7 @@ function boot(){
     var hostLog = hostRows('log');
     var logRows = hostLog >= 0 ? hostLog : Math.max(2, Math.min(6, Math.floor(vp.h / 170)));
     game.cfg.logRows = logRows;
+    game.cfg.mapTopAlign = hostFlag('top') ? 1 : 0;   /* 手机竖屏：小图靠上摆，不留中间那条空白 */
     var fit;
     var lo = cfg.autoZoomMin || 10, hi = cfg.autoZoomMax || 32;
     if (cfg.autoZoom === false){
