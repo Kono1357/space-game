@@ -59,6 +59,7 @@ function boot(){
     userMods = readStoredMods();
     buildGame(userMods);
     out = new T.TextOut(pre, { fontSize: 15, color: false });
+    game.speed = SPEEDS[mode];       /* 内核自己不知道外壳的档位，这里告诉它 */
   } catch (e) {
     showErr('初始化失败：' + (e && e.message ? e.message : e));
     return;
@@ -83,12 +84,22 @@ function boot(){
     return { w: Math.max(320, w - 4), h: Math.max(200, h - 4) };
   }
 
+  /* 宿主壳（手机 App 的外壳）可以用 URL 参数覆盖壳的默认布局，桌面浏览器不受影响：
+       ?log=1..6   底部日志条固定几行。手机壳把日志画到了顶部浮层，就让这几行给地图。
+     不认这个参数的老页面照旧（默认按窗口高度自适应）。 */
+  function hostRows(name){
+    var m;
+    try { m = new RegExp('[?&]' + name + '=(\\d+)').exec(root.location.search || ''); }
+    catch (e) { return 0; }
+    return m ? Math.max(0, Math.min(6, Number(m[1]))) : 0;
+  }
+
   function resize(){
     var vp = viewport();
     var cfg = built.space.config || {};
     /* 固定取景框（config.mapDesignCols/Rows）：切场景时字号不跳，画面不割裂 */
     var need = game.designBox ? game.designBox() : { w: 24, h: 12 };
-    var logRows = Math.max(2, Math.min(6, Math.floor(vp.h / 170)));
+    var logRows = hostRows('log') || Math.max(2, Math.min(6, Math.floor(vp.h / 170)));
     game.cfg.logRows = logRows;
     var fit;
     var lo = cfg.autoZoomMin || 10, hi = cfg.autoZoomMax || 32;
@@ -125,7 +136,7 @@ function boot(){
       (near.length ? '    附近：' + game.npcName(near[0].npcId) : '') +
       (userMods.length ? '    mod ' + userMods.length + ' 个' : '') + '\n' +
       'WASD/方向键 走  E/回车 交互  鼠标点格子 走过去  X 查看  Tab 环顾  ? 帮助\n' +
-      '1-5 速度  +/- 缩放(0 复位)  C ' + (out.color ? '切黑白' : '切彩色') +
+      '1-5 速度(1 暂停 / 2-5 = 1x-8x)  +/- 缩放(0 复位)  C ' + (out.color ? '切黑白' : '切彩色') +
       '  F2 mod  F3 诊断  F4 信息  F2 里能选文件、填模板、导出\n' +
       '格 ' + d.cellW.toFixed(1) + 'x' + d.cellH.toFixed(1) + 'px  画面 ' + game.screenW + 'x' + game.screenH +
       '  可用 ' + Math.round(d.pxW) + 'x' + Math.round(d.pxH) +
@@ -184,6 +195,7 @@ function newGame(){
   game = Core.createGame(built, { kernel: root.ZHANYI_KERNEL || undefined, onKernel: onKernel });
   window.__game = game;
   mode = 0; acc = 0;
+  if (game) game.speed = SPEEDS[mode];     /* 内核自己不知道外壳的档位，这里告诉它 */
   out.lastText = null;
   lastScene = null; lastNeed = '';
   resize(); drawInfo();
@@ -345,6 +357,15 @@ if (modList && modList.addEventListener){
   }
 
   /* ---------------- 键盘 ---------------- */
+  /* 速度档位只有一个来源：外壳的 mode。这里顺手同步给内核，
+     标题栏和 speedLabel() 才和实际速度一致（宿主壳也靠它显示速度）。 */
+  function setMode(m){
+    mode = Math.max(0, Math.min(SPEEDS.length - 1, Number(m) || 0));
+    acc = 0;
+    if (game) game.speed = SPEEDS[mode];
+    drawInfo();
+  }
+
   function onKey(e){
     var k = e.key, g = game;
     if (k === 'F2'){ if (modPanelOpen()) closeModPanel(); else openModPanel(); e.preventDefault(); return; }
@@ -417,7 +438,7 @@ if (modList && modList.addEventListener){
     if (k === 'Tab'){ g.openView('nearby'); render(); drawInfo(); e.preventDefault(); return; }
     if (k === ' ' || k === '.'){ g.wait(1); render(); drawInfo(); e.preventDefault(); return; }
     if (k === 'e' || k === 'E' || k === 'Enter'){ g.interact(); render(); drawInfo(); e.preventDefault(); return; }
-    if (k >= '1' && k <= '5'){ mode = Number(k) - 1; drawInfo(); e.preventDefault(); return; }
+    if (k >= '1' && k <= '5'){ setMode(Number(k) - 1); e.preventDefault(); return; }
     /* 缩放：+ 放大 / - 缩小 / 0 复位 */
     if (k === '+' || k === '='){ zoomBias++; saveZoom(); resize(); drawInfo(); e.preventDefault(); return; }
     if (k === '-' || k === '_'){ zoomBias--; saveZoom(); resize(); drawInfo(); e.preventDefault(); return; }

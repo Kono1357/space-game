@@ -3533,7 +3533,7 @@ registerViewProvider('keymap_now', function(g){
     var from = ui.viewFrom;
     if (from){ head('面板：' + g.viewName(from)); add('↑ ↓', '选择'); add('回车 / E', '执行选中的动作'); add('数字 1-9', '直接执行第 N 个动作'); add('Esc', '关闭面板'); add('?', '就是这里'); }
     else if (g.screenMode === 'galaxy'){ head('星图（你在银河上）'); add('方向键 / WASD', '选星系'); add('回车 / E', '打开这个星系'); add('G / Esc', '回到地表'); add('?', '就是这里'); }
-    else { head('地表（你在' + g.sceneName(g.world.player.scene) + '）'); add('方向键 / WASD', '走路'); add('E / 回车', '和面前的东西交互'); add('X', '查看脚下／周围一眼'); add('Tab', '环顾：这场景里有什么、门通向哪'); add('L', '日志全文'); add('M', '任务与进度'); add('G', '上星图'); add('1 - 5', '速度（5 = 暂停）'); add('F2', 'mod 面板'); add('F3', '诊断'); add('F4', '收起底下那行状态'); }
+    else { head('地表（你在' + g.sceneName(g.world.player.scene) + '）'); add('方向键 / WASD', '走路'); add('E / 回车', '和面前的东西交互'); add('X', '查看脚下／周围一眼'); add('Tab', '环顾：这场景里有什么、门通向哪'); add('L', '日志全文'); add('M', '任务与进度'); add('G', '上星图'); add('1 - 5', '速度（1 = 暂停，2-5 = 1x/2x/4x/8x）'); add('F2', 'mod 面板'); add('F3', '诊断'); add('F4', '收起底下那行状态'); }
   } else if (ui.view){
     head('面板：' + g.viewName(ui.view.id));
     add('↑ ↓', '选择');
@@ -3556,7 +3556,7 @@ registerViewProvider('keymap_now', function(g){
     add('L', '日志全文');
     add('M', '任务与进度');
     add('G', '上星图');
-    add('1 - 5', '速度（5 = 暂停）');
+    add('1 - 5', '速度（1 = 暂停，2-5 = 1x/2x/4x/8x）');
     add('F2', 'mod 面板');
     add('F3', '诊断（校验报告）');
     add('F4', '收起／展开底下那行状态');

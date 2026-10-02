@@ -1,7 +1,7 @@
 # 朔  场景层框架  项目说明书（AI 上下文文件）
 
 > 本文件由脚本扫描仓库生成（数字、字段、示例均从真实文件现算/现摘，未手抄）。
-> 生成时间：2026-10-02 10:43 +08:00　|　生成时基线：`node tests/run_all.js` 通过 868 / 失败 0
+> 生成时间：2026-10-02 11:14 +08:00　|　生成时基线：`node tests/run_all.js` 通过 868 / 失败 0
 > 位置：`D:/大肥鱼工作区/朔/space/AI_CONTEXT.md`
 
 ## 怎么用这份文件
@@ -82,7 +82,7 @@
   content/space.json                          40272 行    839.4 KB
   engine/space-core.js                         3837 行    185.5 KB
   engine/space-textout.js                       194 行      8.0 KB
-  engine/space-textshell.js                     471 行     23.6 KB
+  engine/space-textshell.js                     492 行     24.7 KB
   index.html                                     22 行      0.9 KB
   mods/example_mod/README.md                     36 行      1.7 KB
   mods/example_mod/mod.json                     277 行      6.2 KB
@@ -90,7 +90,7 @@
   preview_probe.png                             二进制     42.9 KB
   preview_text.png                              二进制     69.5 KB
   probe.html                                    119 行      5.3 KB
-  space-text.html                              4567 行   1143.3 KB
+  space-text.html                              4588 行   1144.4 KB
   space-text.tpl.html                            67 行      3.5 KB
   tests/fixtures/mod_bad_culture.json            53 行      1.1 KB
   tests/fixtures/mod_new_culture.json            41 行      0.9 KB
@@ -179,7 +179,7 @@
 ### 3.4 生成时实测
 
 ```
-python build_space.py         -> exit 0（space-text.html 1143.3 KB，起手模板已编入）
+python build_space.py         -> exit 0（space-text.html 1144.4 KB，起手模板已编入）
 node tests/run_all.js         -> exit 0  合计：通过 868 / 失败 0
 python tools/validate_space.py -> exit 0  错误 0 / 警告 0
 node tools/preview.js 80 24   -> exit 0（终端里打印画面）
@@ -785,7 +785,7 @@ node --check engine/space-core.js     # 改引擎后先过语法
 
 | 检查 | 命令 | 结果 |
 |---|---|---|
-| 构建 | `python build_space.py` | exit 0，`space-text.html` 1143.3 KB |
+| 构建 | `python build_space.py` | exit 0，`space-text.html` 1144.4 KB |
 | 回归 | `node tests/run_all.js` | exit 0，通过 868 / 失败 0 |
 | 内容校验 | `python tools/validate_space.py` | exit 0，错误 0 / 警告 0 |
 | 预览 | `node tools/preview.js 80 24` | exit 0 |
