@@ -1,7 +1,7 @@
 # 朔  场景层框架  项目说明书（AI 上下文文件）
 
 > 本文件由脚本扫描仓库生成（数字、字段、示例均从真实文件现算/现摘，未手抄）。
-> 生成时间：2026-10-02 07:50 +08:00　|　生成时基线：`node tests/run_all.js` 通过 803 / 失败 0
+> 生成时间：2026-10-02 07:59 +08:00　|　生成时基线：`node tests/run_all.js` 通过 803 / 失败 0
 > 位置：`D:/大肥鱼工作区/朔/space/AI_CONTEXT.md`
 
 ## 怎么用这份文件
@@ -79,7 +79,7 @@
   README.md                                     645 行     45.5 KB
   VISION.md                                      88 行      5.4 KB
   build_space.py                                167 行      8.1 KB
-  content/space.json                          39185 行    819.8 KB
+  content/space.json                          39695 行    829.7 KB
   engine/space-core.js                         3405 行    163.4 KB
   engine/space-textout.js                       194 行      8.0 KB
   engine/space-textshell.js                     458 行     22.5 KB
@@ -90,7 +90,7 @@
   preview_probe.png                             二进制     42.9 KB
   preview_text.png                              二进制     69.5 KB
   probe.html                                    119 行      5.3 KB
-  space-text.html                              4122 行   1109.0 KB
+  space-text.html                              4122 行   1113.4 KB
   space-text.tpl.html                            67 行      3.5 KB
   tests/fixtures/mod_bad_culture.json            53 行      1.1 KB
   tests/fixtures/mod_new_culture.json            41 行      0.9 KB
@@ -177,7 +177,7 @@
 ### 3.4 生成时实测
 
 ```
-python build_space.py         -> exit 0（space-text.html 1109.0 KB，起手模板已编入）
+python build_space.py         -> exit 0（space-text.html 1113.4 KB，起手模板已编入）
 node tests/run_all.js         -> exit 0  合计：通过 803 / 失败 0
 python tools/validate_space.py -> exit 0  错误 0 / 警告 0
 node tools/preview.js 80 24   -> exit 0（终端里打印画面）
@@ -783,7 +783,7 @@ node --check engine/space-core.js     # 改引擎后先过语法
 
 | 检查 | 命令 | 结果 |
 |---|---|---|
-| 构建 | `python build_space.py` | exit 0，`space-text.html` 1109.0 KB |
+| 构建 | `python build_space.py` | exit 0，`space-text.html` 1113.4 KB |
 | 回归 | `node tests/run_all.js` | exit 0，通过 803 / 失败 0 |
 | 内容校验 | `python tools/validate_space.py` | exit 0，错误 0 / 警告 0 |
 | 预览 | `node tools/preview.js 80 24` | exit 0 |

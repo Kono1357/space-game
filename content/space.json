@@ -31792,10 +31792,21 @@
      {
       "type": "if",
       "condition": {
-       "type": "counter",
-       "counter": "food",
-       "op": ">=",
-       "value": 10
+       "type": "all",
+       "all": [
+        {
+         "type": "counter",
+         "counter": "food",
+         "op": ">=",
+         "value": 10
+        },
+        {
+         "type": "counter",
+         "counter": "col_col_sol3_morale",
+         "op": "<",
+         "value": 90
+        }
+       ]
       },
       "then": [
        {
@@ -31806,19 +31817,48 @@
       ],
       "else": [
        {
-        "type": "counter_add",
-        "counter": "col_col_sol3_morale",
-        "delta": -3
+        "type": "if",
+        "condition": {
+         "type": "counter",
+         "counter": "food",
+         "op": "<",
+         "value": 10
+        },
+        "then": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_sol3_morale",
+          "delta": -3
+         }
+        ],
+        "else": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_sol3_morale",
+          "delta": -1
+         }
+        ]
        }
       ]
      },
      {
       "type": "if",
       "condition": {
-       "type": "counter",
-       "counter": "col_col_sol3_morale",
-       "op": ">=",
-       "value": 60
+       "type": "all",
+       "all": [
+        {
+         "type": "counter",
+         "counter": "col_col_sol3_morale",
+         "op": ">=",
+         "value": 60
+        },
+        {
+         "type": "counter",
+         "counter": "col_col_sol3_pop",
+         "op": "<",
+         "value": 1200
+        }
+       ]
       },
       "then": [
        {
@@ -31831,10 +31871,21 @@
        {
         "type": "if",
         "condition": {
-         "type": "counter",
-         "counter": "col_col_sol3_pop",
-         "op": ">=",
-         "value": 40
+         "type": "all",
+         "all": [
+          {
+           "type": "counter",
+           "counter": "col_col_sol3_morale",
+           "op": "<",
+           "value": 60
+          },
+          {
+           "type": "counter",
+           "counter": "col_col_sol3_pop",
+           "op": ">=",
+           "value": 40
+          }
+         ]
         },
         "then": [
          {
@@ -31849,10 +31900,21 @@
      {
       "type": "if",
       "condition": {
-       "type": "counter",
-       "counter": "food",
-       "op": ">=",
-       "value": 10
+       "type": "all",
+       "all": [
+        {
+         "type": "counter",
+         "counter": "food",
+         "op": ">=",
+         "value": 10
+        },
+        {
+         "type": "counter",
+         "counter": "col_col_sol4_morale",
+         "op": "<",
+         "value": 90
+        }
+       ]
       },
       "then": [
        {
@@ -31863,19 +31925,48 @@
       ],
       "else": [
        {
-        "type": "counter_add",
-        "counter": "col_col_sol4_morale",
-        "delta": -3
+        "type": "if",
+        "condition": {
+         "type": "counter",
+         "counter": "food",
+         "op": "<",
+         "value": 10
+        },
+        "then": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_sol4_morale",
+          "delta": -3
+         }
+        ],
+        "else": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_sol4_morale",
+          "delta": -1
+         }
+        ]
        }
       ]
      },
      {
       "type": "if",
       "condition": {
-       "type": "counter",
-       "counter": "col_col_sol4_morale",
-       "op": ">=",
-       "value": 60
+       "type": "all",
+       "all": [
+        {
+         "type": "counter",
+         "counter": "col_col_sol4_morale",
+         "op": ">=",
+         "value": 60
+        },
+        {
+         "type": "counter",
+         "counter": "col_col_sol4_pop",
+         "op": "<",
+         "value": 1200
+        }
+       ]
       },
       "then": [
        {
@@ -31888,10 +31979,21 @@
        {
         "type": "if",
         "condition": {
-         "type": "counter",
-         "counter": "col_col_sol4_pop",
-         "op": ">=",
-         "value": 40
+         "type": "all",
+         "all": [
+          {
+           "type": "counter",
+           "counter": "col_col_sol4_morale",
+           "op": "<",
+           "value": 60
+          },
+          {
+           "type": "counter",
+           "counter": "col_col_sol4_pop",
+           "op": ">=",
+           "value": 40
+          }
+         ]
         },
         "then": [
          {
@@ -31906,10 +32008,21 @@
      {
       "type": "if",
       "condition": {
-       "type": "counter",
-       "counter": "food",
-       "op": ">=",
-       "value": 10
+       "type": "all",
+       "all": [
+        {
+         "type": "counter",
+         "counter": "food",
+         "op": ">=",
+         "value": 10
+        },
+        {
+         "type": "counter",
+         "counter": "col_col_veil_morale",
+         "op": "<",
+         "value": 90
+        }
+       ]
       },
       "then": [
        {
@@ -31920,19 +32033,48 @@
       ],
       "else": [
        {
-        "type": "counter_add",
-        "counter": "col_col_veil_morale",
-        "delta": -3
+        "type": "if",
+        "condition": {
+         "type": "counter",
+         "counter": "food",
+         "op": "<",
+         "value": 10
+        },
+        "then": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_veil_morale",
+          "delta": -3
+         }
+        ],
+        "else": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_veil_morale",
+          "delta": -1
+         }
+        ]
        }
       ]
      },
      {
       "type": "if",
       "condition": {
-       "type": "counter",
-       "counter": "col_col_veil_morale",
-       "op": ">=",
-       "value": 60
+       "type": "all",
+       "all": [
+        {
+         "type": "counter",
+         "counter": "col_col_veil_morale",
+         "op": ">=",
+         "value": 60
+        },
+        {
+         "type": "counter",
+         "counter": "col_col_veil_pop",
+         "op": "<",
+         "value": 1200
+        }
+       ]
       },
       "then": [
        {
@@ -31945,10 +32087,21 @@
        {
         "type": "if",
         "condition": {
-         "type": "counter",
-         "counter": "col_col_veil_pop",
-         "op": ">=",
-         "value": 40
+         "type": "all",
+         "all": [
+          {
+           "type": "counter",
+           "counter": "col_col_veil_morale",
+           "op": "<",
+           "value": 60
+          },
+          {
+           "type": "counter",
+           "counter": "col_col_veil_pop",
+           "op": ">=",
+           "value": 40
+          }
+         ]
         },
         "then": [
          {
@@ -31963,10 +32116,21 @@
      {
       "type": "if",
       "condition": {
-       "type": "counter",
-       "counter": "food",
-       "op": ">=",
-       "value": 10
+       "type": "all",
+       "all": [
+        {
+         "type": "counter",
+         "counter": "food",
+         "op": ">=",
+         "value": 10
+        },
+        {
+         "type": "counter",
+         "counter": "col_col_ruins_morale",
+         "op": "<",
+         "value": 90
+        }
+       ]
       },
       "then": [
        {
@@ -31977,19 +32141,48 @@
       ],
       "else": [
        {
-        "type": "counter_add",
-        "counter": "col_col_ruins_morale",
-        "delta": -3
+        "type": "if",
+        "condition": {
+         "type": "counter",
+         "counter": "food",
+         "op": "<",
+         "value": 10
+        },
+        "then": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_ruins_morale",
+          "delta": -3
+         }
+        ],
+        "else": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_ruins_morale",
+          "delta": -1
+         }
+        ]
        }
       ]
      },
      {
       "type": "if",
       "condition": {
-       "type": "counter",
-       "counter": "col_col_ruins_morale",
-       "op": ">=",
-       "value": 60
+       "type": "all",
+       "all": [
+        {
+         "type": "counter",
+         "counter": "col_col_ruins_morale",
+         "op": ">=",
+         "value": 60
+        },
+        {
+         "type": "counter",
+         "counter": "col_col_ruins_pop",
+         "op": "<",
+         "value": 1200
+        }
+       ]
       },
       "then": [
        {
@@ -32002,10 +32195,21 @@
        {
         "type": "if",
         "condition": {
-         "type": "counter",
-         "counter": "col_col_ruins_pop",
-         "op": ">=",
-         "value": 40
+         "type": "all",
+         "all": [
+          {
+           "type": "counter",
+           "counter": "col_col_ruins_morale",
+           "op": "<",
+           "value": 60
+          },
+          {
+           "type": "counter",
+           "counter": "col_col_ruins_pop",
+           "op": ">=",
+           "value": 40
+          }
+         ]
         },
         "then": [
          {
@@ -32020,10 +32224,21 @@
      {
       "type": "if",
       "condition": {
-       "type": "counter",
-       "counter": "food",
-       "op": ">=",
-       "value": 10
+       "type": "all",
+       "all": [
+        {
+         "type": "counter",
+         "counter": "food",
+         "op": ">=",
+         "value": 10
+        },
+        {
+         "type": "counter",
+         "counter": "col_col_res_morale",
+         "op": "<",
+         "value": 90
+        }
+       ]
       },
       "then": [
        {
@@ -32034,19 +32249,48 @@
       ],
       "else": [
        {
-        "type": "counter_add",
-        "counter": "col_col_res_morale",
-        "delta": -3
+        "type": "if",
+        "condition": {
+         "type": "counter",
+         "counter": "food",
+         "op": "<",
+         "value": 10
+        },
+        "then": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_res_morale",
+          "delta": -3
+         }
+        ],
+        "else": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_res_morale",
+          "delta": -1
+         }
+        ]
        }
       ]
      },
      {
       "type": "if",
       "condition": {
-       "type": "counter",
-       "counter": "col_col_res_morale",
-       "op": ">=",
-       "value": 60
+       "type": "all",
+       "all": [
+        {
+         "type": "counter",
+         "counter": "col_col_res_morale",
+         "op": ">=",
+         "value": 60
+        },
+        {
+         "type": "counter",
+         "counter": "col_col_res_pop",
+         "op": "<",
+         "value": 1200
+        }
+       ]
       },
       "then": [
        {
@@ -32059,10 +32303,21 @@
        {
         "type": "if",
         "condition": {
-         "type": "counter",
-         "counter": "col_col_res_pop",
-         "op": ">=",
-         "value": 40
+         "type": "all",
+         "all": [
+          {
+           "type": "counter",
+           "counter": "col_col_res_morale",
+           "op": "<",
+           "value": 60
+          },
+          {
+           "type": "counter",
+           "counter": "col_col_res_pop",
+           "op": ">=",
+           "value": 40
+          }
+         ]
         },
         "then": [
          {
@@ -32077,10 +32332,21 @@
      {
       "type": "if",
       "condition": {
-       "type": "counter",
-       "counter": "food",
-       "op": ">=",
-       "value": 10
+       "type": "all",
+       "all": [
+        {
+         "type": "counter",
+         "counter": "food",
+         "op": ">=",
+         "value": 10
+        },
+        {
+         "type": "counter",
+         "counter": "col_col_dock_morale",
+         "op": "<",
+         "value": 90
+        }
+       ]
       },
       "then": [
        {
@@ -32091,19 +32357,48 @@
       ],
       "else": [
        {
-        "type": "counter_add",
-        "counter": "col_col_dock_morale",
-        "delta": -3
+        "type": "if",
+        "condition": {
+         "type": "counter",
+         "counter": "food",
+         "op": "<",
+         "value": 10
+        },
+        "then": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_dock_morale",
+          "delta": -3
+         }
+        ],
+        "else": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_dock_morale",
+          "delta": -1
+         }
+        ]
        }
       ]
      },
      {
       "type": "if",
       "condition": {
-       "type": "counter",
-       "counter": "col_col_dock_morale",
-       "op": ">=",
-       "value": 60
+       "type": "all",
+       "all": [
+        {
+         "type": "counter",
+         "counter": "col_col_dock_morale",
+         "op": ">=",
+         "value": 60
+        },
+        {
+         "type": "counter",
+         "counter": "col_col_dock_pop",
+         "op": "<",
+         "value": 1200
+        }
+       ]
       },
       "then": [
        {
@@ -32116,10 +32411,21 @@
        {
         "type": "if",
         "condition": {
-         "type": "counter",
-         "counter": "col_col_dock_pop",
-         "op": ">=",
-         "value": 40
+         "type": "all",
+         "all": [
+          {
+           "type": "counter",
+           "counter": "col_col_dock_morale",
+           "op": "<",
+           "value": 60
+          },
+          {
+           "type": "counter",
+           "counter": "col_col_dock_pop",
+           "op": ">=",
+           "value": 40
+          }
+         ]
         },
         "then": [
          {
@@ -32134,10 +32440,21 @@
      {
       "type": "if",
       "condition": {
-       "type": "counter",
-       "counter": "food",
-       "op": ">=",
-       "value": 10
+       "type": "all",
+       "all": [
+        {
+         "type": "counter",
+         "counter": "food",
+         "op": ">=",
+         "value": 10
+        },
+        {
+         "type": "counter",
+         "counter": "col_col_cold_morale",
+         "op": "<",
+         "value": 90
+        }
+       ]
       },
       "then": [
        {
@@ -32148,19 +32465,48 @@
       ],
       "else": [
        {
-        "type": "counter_add",
-        "counter": "col_col_cold_morale",
-        "delta": -3
+        "type": "if",
+        "condition": {
+         "type": "counter",
+         "counter": "food",
+         "op": "<",
+         "value": 10
+        },
+        "then": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_cold_morale",
+          "delta": -3
+         }
+        ],
+        "else": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_cold_morale",
+          "delta": -1
+         }
+        ]
        }
       ]
      },
      {
       "type": "if",
       "condition": {
-       "type": "counter",
-       "counter": "col_col_cold_morale",
-       "op": ">=",
-       "value": 60
+       "type": "all",
+       "all": [
+        {
+         "type": "counter",
+         "counter": "col_col_cold_morale",
+         "op": ">=",
+         "value": 60
+        },
+        {
+         "type": "counter",
+         "counter": "col_col_cold_pop",
+         "op": "<",
+         "value": 1200
+        }
+       ]
       },
       "then": [
        {
@@ -32173,10 +32519,21 @@
        {
         "type": "if",
         "condition": {
-         "type": "counter",
-         "counter": "col_col_cold_pop",
-         "op": ">=",
-         "value": 40
+         "type": "all",
+         "all": [
+          {
+           "type": "counter",
+           "counter": "col_col_cold_morale",
+           "op": "<",
+           "value": 60
+          },
+          {
+           "type": "counter",
+           "counter": "col_col_cold_pop",
+           "op": ">=",
+           "value": 40
+          }
+         ]
         },
         "then": [
          {
@@ -32191,10 +32548,21 @@
      {
       "type": "if",
       "condition": {
-       "type": "counter",
-       "counter": "food",
-       "op": ">=",
-       "value": 10
+       "type": "all",
+       "all": [
+        {
+         "type": "counter",
+         "counter": "food",
+         "op": ">=",
+         "value": 10
+        },
+        {
+         "type": "counter",
+         "counter": "col_col_lamp_morale",
+         "op": "<",
+         "value": 90
+        }
+       ]
       },
       "then": [
        {
@@ -32205,19 +32573,48 @@
       ],
       "else": [
        {
-        "type": "counter_add",
-        "counter": "col_col_lamp_morale",
-        "delta": -3
+        "type": "if",
+        "condition": {
+         "type": "counter",
+         "counter": "food",
+         "op": "<",
+         "value": 10
+        },
+        "then": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_lamp_morale",
+          "delta": -3
+         }
+        ],
+        "else": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_lamp_morale",
+          "delta": -1
+         }
+        ]
        }
       ]
      },
      {
       "type": "if",
       "condition": {
-       "type": "counter",
-       "counter": "col_col_lamp_morale",
-       "op": ">=",
-       "value": 60
+       "type": "all",
+       "all": [
+        {
+         "type": "counter",
+         "counter": "col_col_lamp_morale",
+         "op": ">=",
+         "value": 60
+        },
+        {
+         "type": "counter",
+         "counter": "col_col_lamp_pop",
+         "op": "<",
+         "value": 1200
+        }
+       ]
       },
       "then": [
        {
@@ -32230,10 +32627,21 @@
        {
         "type": "if",
         "condition": {
-         "type": "counter",
-         "counter": "col_col_lamp_pop",
-         "op": ">=",
-         "value": 40
+         "type": "all",
+         "all": [
+          {
+           "type": "counter",
+           "counter": "col_col_lamp_morale",
+           "op": "<",
+           "value": 60
+          },
+          {
+           "type": "counter",
+           "counter": "col_col_lamp_pop",
+           "op": ">=",
+           "value": 40
+          }
+         ]
         },
         "then": [
          {
@@ -32248,10 +32656,21 @@
      {
       "type": "if",
       "condition": {
-       "type": "counter",
-       "counter": "food",
-       "op": ">=",
-       "value": 10
+       "type": "all",
+       "all": [
+        {
+         "type": "counter",
+         "counter": "food",
+         "op": ">=",
+         "value": 10
+        },
+        {
+         "type": "counter",
+         "counter": "col_col_drift_morale",
+         "op": "<",
+         "value": 90
+        }
+       ]
       },
       "then": [
        {
@@ -32262,19 +32681,48 @@
       ],
       "else": [
        {
-        "type": "counter_add",
-        "counter": "col_col_drift_morale",
-        "delta": -3
+        "type": "if",
+        "condition": {
+         "type": "counter",
+         "counter": "food",
+         "op": "<",
+         "value": 10
+        },
+        "then": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_drift_morale",
+          "delta": -3
+         }
+        ],
+        "else": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_drift_morale",
+          "delta": -1
+         }
+        ]
        }
       ]
      },
      {
       "type": "if",
       "condition": {
-       "type": "counter",
-       "counter": "col_col_drift_morale",
-       "op": ">=",
-       "value": 60
+       "type": "all",
+       "all": [
+        {
+         "type": "counter",
+         "counter": "col_col_drift_morale",
+         "op": ">=",
+         "value": 60
+        },
+        {
+         "type": "counter",
+         "counter": "col_col_drift_pop",
+         "op": "<",
+         "value": 1200
+        }
+       ]
       },
       "then": [
        {
@@ -32287,10 +32735,21 @@
        {
         "type": "if",
         "condition": {
-         "type": "counter",
-         "counter": "col_col_drift_pop",
-         "op": ">=",
-         "value": 40
+         "type": "all",
+         "all": [
+          {
+           "type": "counter",
+           "counter": "col_col_drift_morale",
+           "op": "<",
+           "value": 60
+          },
+          {
+           "type": "counter",
+           "counter": "col_col_drift_pop",
+           "op": ">=",
+           "value": 40
+          }
+         ]
         },
         "then": [
          {
@@ -32305,10 +32764,21 @@
      {
       "type": "if",
       "condition": {
-       "type": "counter",
-       "counter": "food",
-       "op": ">=",
-       "value": 10
+       "type": "all",
+       "all": [
+        {
+         "type": "counter",
+         "counter": "food",
+         "op": ">=",
+         "value": 10
+        },
+        {
+         "type": "counter",
+         "counter": "col_col_anchor_morale",
+         "op": "<",
+         "value": 90
+        }
+       ]
       },
       "then": [
        {
@@ -32319,19 +32789,48 @@
       ],
       "else": [
        {
-        "type": "counter_add",
-        "counter": "col_col_anchor_morale",
-        "delta": -3
+        "type": "if",
+        "condition": {
+         "type": "counter",
+         "counter": "food",
+         "op": "<",
+         "value": 10
+        },
+        "then": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_anchor_morale",
+          "delta": -3
+         }
+        ],
+        "else": [
+         {
+          "type": "counter_add",
+          "counter": "col_col_anchor_morale",
+          "delta": -1
+         }
+        ]
        }
       ]
      },
      {
       "type": "if",
       "condition": {
-       "type": "counter",
-       "counter": "col_col_anchor_morale",
-       "op": ">=",
-       "value": 60
+       "type": "all",
+       "all": [
+        {
+         "type": "counter",
+         "counter": "col_col_anchor_morale",
+         "op": ">=",
+         "value": 60
+        },
+        {
+         "type": "counter",
+         "counter": "col_col_anchor_pop",
+         "op": "<",
+         "value": 1200
+        }
+       ]
       },
       "then": [
        {
@@ -32344,10 +32843,21 @@
        {
         "type": "if",
         "condition": {
-         "type": "counter",
-         "counter": "col_col_anchor_pop",
-         "op": ">=",
-         "value": 40
+         "type": "all",
+         "all": [
+          {
+           "type": "counter",
+           "counter": "col_col_anchor_morale",
+           "op": "<",
+           "value": 60
+          },
+          {
+           "type": "counter",
+           "counter": "col_col_anchor_pop",
+           "op": ">=",
+           "value": 40
+          }
+         ]
         },
         "then": [
          {
