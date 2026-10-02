@@ -2720,21 +2720,25 @@ Game.prototype.getViewSize = function(){
 Game.prototype.designBox = function(){ return this.getViewSize(); };   /* 旧名，保留兼容 */
 Game.prototype.layout = function(){
   var W = this.screenW, H = this.screenH;
-  var logRows = clamp(num(this.cfg.logRows, 3), 1, 6);
+  /* logRows 可以是 0：宿主（手机壳）把日志画在自己的浮层上，游戏这条就整块不画，
+     地图因此多出「分隔线 + N 行」—— 见 hostRows('log') 与 ?log=0。 */
+  var logRows = clamp(num(this.cfg.logRows, 3), 0, 6);
+  var logBlock = logRows > 0 ? 1 + logRows : 0;        /* 有日志才有那条分隔线 */
   var view = this.getViewSize();           /* 固定视口：分栏与否不随场景变 */
   var side = (view.w >= 70 && view.h >= 18) ? clamp(Math.round(W * 0.26), 24, 42) : 0;
   /* 开了侧栏就得保证地图区放得下整个视口，否则宁可不分栏 */
   if (side && (W - side - 1) < view.w) side = 0;
   var mapTop = 2;                                  /* 0 标题  1 状态 */
   var mapW = side ? (W - side - 1) : W;
-  var mapH = side ? Math.max(4, H - mapTop) : Math.max(4, H - mapTop - 1 - logRows);
+  var mapH = side ? Math.max(4, H - mapTop) : Math.max(4, H - mapTop - logBlock);
   /* 视口窗口：在地图区里居中；比地图区还大就取地图区 */
   var winW = Math.min(view.w, mapW), winH = Math.min(view.h, mapH);
   var winX = Math.floor((mapW - winW) / 2), winY = mapTop + Math.floor((mapH - winH) / 2);
   return { W: W, H: H, side: side, sideX: side ? mapW : -1, mapW: mapW,
            mapTop: mapTop, mapH: mapH, logRows: logRows,
            viewW: view.w, viewH: view.h, winX: winX, winY: winY, winW: winW, winH: winH,
-           chromeRows: side ? mapTop : (mapTop + 1 + logRows) };
+           logBlock: logBlock,
+           chromeRows: side ? mapTop : (mapTop + logBlock) };
 };
 
 /* ---------------- 教学 ----------------
@@ -3280,7 +3284,8 @@ Game.prototype.render = function(){
              lg[gi].kind === 'npc' ? 'npc' : 'ui', 'panel');
     }
   } else {
-    /* --- 窄屏：日志在下面 --- */
+    /* --- 窄屏：日志在下面（logRows=0 时整块不画，宿主自己画） --- */
+    if (lay.logRows > 0){
     var lineB = mapTop + mapH;
     s.hline(0, lineB, W, '\u2500', 'ui_dim', 'panel');
     s.text(2, lineB, ' 日志 ', 'accent', 'panel');
@@ -3290,6 +3295,7 @@ Game.prototype.render = function(){
       var row2 = lineB + 1 + lj;
       if (idx2 < 0 || idx2 >= log.length || row2 >= H) continue;
       s.text(1, row2, cutW(this.logLine(log[idx2]), W - 2), str(log[idx2].level, 'ui'), 'bg');
+    }
     }
   }
 

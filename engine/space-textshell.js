@@ -88,10 +88,11 @@ function boot(){
        ?log=1..6   底部日志条固定几行。手机壳把日志画到了顶部浮层，就让这几行给地图。
      不认这个参数的老页面照旧（默认按窗口高度自适应）。 */
   function hostRows(name){
+    /* 返回 -1 = 宿主没说；0 是**有效值**（= 别画，宿主自己画），不能和"没说"混为一谈。 */
     var m;
     try { m = new RegExp('[?&]' + name + '=(\\d+)').exec(root.location.search || ''); }
-    catch (e) { return 0; }
-    return m ? Math.max(0, Math.min(6, Number(m[1]))) : 0;
+    catch (e) { return -1; }
+    return m ? Math.max(0, Math.min(6, Number(m[1]))) : -1;
   }
 
   function resize(){
@@ -99,7 +100,8 @@ function boot(){
     var cfg = built.space.config || {};
     /* 固定取景框（config.mapDesignCols/Rows）：切场景时字号不跳，画面不割裂 */
     var need = game.designBox ? game.designBox() : { w: 24, h: 12 };
-    var logRows = hostRows('log') || Math.max(2, Math.min(6, Math.floor(vp.h / 170)));
+    var hostLog = hostRows('log');
+    var logRows = hostLog >= 0 ? hostLog : Math.max(2, Math.min(6, Math.floor(vp.h / 170)));
     game.cfg.logRows = logRows;
     var fit;
     var lo = cfg.autoZoomMin || 10, hi = cfg.autoZoomMax || 32;
