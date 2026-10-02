@@ -642,6 +642,35 @@ def generated_return_unsafe(doc):
     return unsafe
 
 
+def link_new_nodes(new_nodes, existing, max_link=3):
+    """给生成出来的星系连航道（第 1 期）。
+
+    星图靠航道走，没航道的星系就是一串孤岛 —— 舰队到不了，那个星区等于不存在。
+    做法：每个新星系连上**最近的 max_link 个已有星系**，并保证至少连 1 个
+    （只连最近邻可能连出孤岛团，所以按距离排序逐个接）。
+    """
+    links = {}
+    for n in list(existing) + list(new_nodes):
+        links[n['id']] = set(n.get('links') or [])
+    def d(a, b): return math.hypot(a['x'] - b['x'], a['y'] - b['y'])
+    for n in new_nodes:
+        # key= 只按距离排：写成 (距离, 字典) 的话距离一相等就去比 dict，Python 会直接抛 TypeError
+        cands = sorted((o for o in existing if o['id'] != n['id']), key=lambda o: d(n, o))
+        took = 0
+        for o in cands:
+            if took >= max_link: break
+            if len(links[o['id']]) >= 6: continue
+            links[n['id']].add(o['id']); links[o['id']].add(n['id']); took += 1
+        if took == 0 and cands:                       # 一个都没接上 -> 硬接最近的
+            o = cands[0]
+            links[n['id']].add(o['id']); links[o['id']].add(n['id'])
+    # **只写回新节点**：existing 是内容里的共享对象，改它会让第二次调用看到不同的起点
+    # （自检会报「同 seed 两次生成不一致」）。老节点那半边由引擎加载时补对称。
+    for n in new_nodes:
+        n['links'] = sorted(links[n['id']])
+    return new_nodes
+
+
 def load_planet_types(space=None):
     """可用的行星类型 id（地表 / 地下的群系由它决定）。内容里没有就返回空表 -> 走默认群系。"""
     space = space if space is not None else GM.SPACE
@@ -793,6 +822,9 @@ def make_world(seed, sites):
         ('gw_mis_war', '指令：交战威慑', 'gw_wars', '对已勘测的站点开战威慑。'),
     ):
         missions.append({'id': mid, 'name': mn, 'objective': obj, 'progress': {'counter': cid, 'target': sites}})
+
+    # 给新星系接航道（星图靠航道走；没航道的星系舰队到不了，等于不存在）
+    link_new_nodes(nodes, (GM.SPACE.get('galaxy') or {}).get('nodes') or [])
 
     hx, hy = hub_cell()
     interactables.append({'id': 'gw_world_terminal', 'name': '世界地图终端', 'symbol': 'W', 'color': 'npc2', 'bg': 'panel2',

@@ -2339,7 +2339,9 @@
   "mapTargetRows": 28,
   "npcRepathPerTick": 2,
   "viewW": 88,
-  "viewH": 24
+  "viewH": 24,
+  "galaxySeed": "links",
+  "galaxyDensity": 1.0
  },
  "palette": {
   "bg": "#06060a",
@@ -32964,7 +32966,12 @@
     "pollution": 0,
     "fleets": 3,
     "mark": "●",
-    "desc": "我方控制"
+    "desc": "我方控制",
+    "links": [
+     "furnace",
+     "sol2",
+     "sol3"
+    ]
    },
    {
     "id": "sol2",
@@ -32975,7 +32982,13 @@
     "pollution": 3,
     "fleets": 0,
     "mark": "◉",
-    "desc": "敌对"
+    "desc": "敌对",
+    "links": [
+     "low",
+     "sol",
+     "sol3",
+     "sol4"
+    ]
    },
    {
     "id": "sol3",
@@ -32986,7 +32999,13 @@
     "pollution": 0,
     "fleets": 0,
     "mark": "●",
-    "desc": "我方控制"
+    "desc": "我方控制",
+    "links": [
+     "ashfall",
+     "sol",
+     "sol2",
+     "sol4"
+    ]
    },
    {
     "id": "sol4",
@@ -32997,7 +33016,12 @@
     "pollution": 0,
     "fleets": 0,
     "mark": "●",
-    "desc": "我方控制"
+    "desc": "我方控制",
+    "links": [
+     "echohub",
+     "sol2",
+     "sol3"
+    ]
    },
    {
     "id": "veil",
@@ -33008,7 +33032,11 @@
     "pollution": 2,
     "fleets": 0,
     "mark": "◉",
-    "desc": "敌对"
+    "desc": "敌对",
+    "links": [
+     "veil2",
+     "verge"
+    ]
    },
    {
     "id": "veil2",
@@ -33019,7 +33047,11 @@
     "pollution": 3,
     "fleets": 0,
     "mark": "◉",
-    "desc": "敌对"
+    "desc": "敌对",
+    "links": [
+     "quiet",
+     "veil"
+    ]
    },
    {
     "id": "vega",
@@ -33030,7 +33062,10 @@
     "pollution": 0,
     "fleets": 0,
     "mark": "○",
-    "desc": "中立/未知"
+    "desc": "中立/未知",
+    "links": [
+     "shard"
+    ]
    },
    {
     "id": "alpha",
@@ -33041,7 +33076,11 @@
     "pollution": 0,
     "fleets": 0,
     "mark": "○",
-    "desc": "中立/未知"
+    "desc": "中立/未知",
+    "links": [
+     "ash_ring",
+     "verge"
+    ]
    },
    {
     "id": "rift7",
@@ -33052,7 +33091,12 @@
     "pollution": 4,
     "fleets": 2,
     "mark": "◉",
-    "desc": "敌对（守备 2 支）"
+    "desc": "敌对（守备 2 支）",
+    "links": [
+     "longnight",
+     "rift3",
+     "rift_9"
+    ]
    },
    {
     "id": "rift3",
@@ -33063,7 +33107,11 @@
     "pollution": 3,
     "fleets": 4,
     "mark": "◉",
-    "desc": "敌对（守备 4 支）"
+    "desc": "敌对（守备 4 支）",
+    "links": [
+     "rift7",
+     "thorn"
+    ]
    },
    {
     "id": "echohub",
@@ -33074,7 +33122,12 @@
     "pollution": 0,
     "fleets": 0,
     "mark": "○",
-    "desc": "中立/未知"
+    "desc": "中立/未知",
+    "links": [
+     "cinder",
+     "pale",
+     "sol4"
+    ]
    },
    {
     "id": "ironhold",
@@ -33085,7 +33138,12 @@
     "pollution": 0,
     "fleets": 3,
     "mark": "◉",
-    "desc": "敌对（守备 3 支）"
+    "desc": "敌对（守备 3 支）",
+    "links": [
+     "broken_mast",
+     "latch",
+     "longnight"
+    ]
    },
    {
     "id": "quiet",
@@ -33096,7 +33154,11 @@
     "pollution": 0,
     "fleets": 0,
     "mark": "○",
-    "desc": "中立/未知"
+    "desc": "中立/未知",
+    "links": [
+     "vega_2",
+     "veil2"
+    ]
    },
    {
     "id": "longnight",
@@ -33107,7 +33169,13 @@
     "pollution": 0,
     "fleets": 1,
     "mark": "●",
-    "desc": "我方控制"
+    "desc": "我方控制",
+    "links": [
+     "ironhold",
+     "rift7",
+     "rift_9",
+     "verge"
+    ]
    },
    {
     "id": "ashfall",
@@ -33118,7 +33186,12 @@
     "pollution": 0,
     "fleets": 0,
     "mark": "○",
-    "desc": "中立/未知"
+    "desc": "中立/未知",
+    "links": [
+     "bright",
+     "kiln",
+     "sol3"
+    ]
    },
    {
     "id": "bright",
@@ -33129,7 +33202,11 @@
     "pollution": 0,
     "fleets": 0,
     "mark": "○",
-    "desc": "中立/未知"
+    "desc": "中立/未知",
+    "links": [
+     "ashfall",
+     "well"
+    ]
    },
    {
     "id": "tallow",
@@ -33140,7 +33217,11 @@
     "pollution": 0,
     "fleets": 0,
     "mark": "○",
-    "desc": "中立/未知"
+    "desc": "中立/未知",
+    "links": [
+     "salt",
+     "shard"
+    ]
    },
    {
     "id": "grey",
@@ -33151,7 +33232,11 @@
     "pollution": 0,
     "fleets": 0,
     "mark": "○",
-    "desc": "中立/未知"
+    "desc": "中立/未知",
+    "links": [
+     "low",
+     "rust_belt"
+    ]
    },
    {
     "id": "thorn",
@@ -33162,7 +33247,10 @@
     "pollution": 0,
     "fleets": 0,
     "mark": "◉",
-    "desc": "敌对"
+    "desc": "敌对",
+    "links": [
+     "rift3"
+    ]
    },
    {
     "id": "hush",
@@ -33173,7 +33261,10 @@
     "pollution": 2,
     "fleets": 0,
     "mark": "◉",
-    "desc": "敌对"
+    "desc": "敌对",
+    "links": [
+     "rift_9"
+    ]
    },
    {
     "id": "pale",
@@ -33184,7 +33275,12 @@
     "pollution": 0,
     "fleets": 0,
     "mark": "○",
-    "desc": "中立/未知"
+    "desc": "中立/未知",
+    "links": [
+     "beacon",
+     "echohub",
+     "vega_2"
+    ]
    },
    {
     "id": "kiln",
@@ -33195,7 +33291,11 @@
     "pollution": 0,
     "fleets": 0,
     "mark": "○",
-    "desc": "中立/未知"
+    "desc": "中立/未知",
+    "links": [
+     "ashfall",
+     "cold_forge"
+    ]
    },
    {
     "id": "shoal",
@@ -33206,7 +33306,11 @@
     "pollution": 0,
     "fleets": 0,
     "mark": "○",
-    "desc": "中立/未知"
+    "desc": "中立/未知",
+    "links": [
+     "alpha_3",
+     "salt"
+    ]
    },
    {
     "id": "apse",
@@ -33217,7 +33321,10 @@
     "pollution": 0,
     "fleets": 0,
     "mark": "○",
-    "desc": "中立/未知"
+    "desc": "中立/未知",
+    "links": [
+     "vega_2"
+    ]
    },
    {
     "id": "furnace",
@@ -33228,7 +33335,10 @@
     "pollution": 0,
     "fleets": 1,
     "mark": "●",
-    "desc": "我方控制"
+    "desc": "我方控制",
+    "links": [
+     "sol"
+    ]
    },
    {
     "id": "latch",
@@ -33239,7 +33349,13 @@
     "pollution": 1,
     "fleets": 0,
     "mark": "◉",
-    "desc": "敌对"
+    "desc": "敌对",
+    "links": [
+     "broken_mast",
+     "ironhold",
+     "lone_lamp",
+     "salt"
+    ]
    },
    {
     "id": "cinder",
@@ -33250,7 +33366,11 @@
     "pollution": 0,
     "fleets": 0,
     "mark": "●",
-    "desc": "我方控制"
+    "desc": "我方控制",
+    "links": [
+     "drift",
+     "echohub"
+    ]
    },
    {
     "id": "verge",
@@ -33261,7 +33381,13 @@
     "pollution": 0,
     "fleets": 0,
     "mark": "○",
-    "desc": "中立/未知"
+    "desc": "中立/未知",
+    "links": [
+     "alpha",
+     "ash_ring",
+     "longnight",
+     "veil"
+    ]
    },
    {
     "id": "notch",
@@ -33272,7 +33398,12 @@
     "pollution": 0,
     "fleets": 0,
     "mark": "◉",
-    "desc": "敌对"
+    "desc": "敌对",
+    "links": [
+     "broken_mast",
+     "rift_9",
+     "spire"
+    ]
    },
    {
     "id": "well",
@@ -33283,7 +33414,11 @@
     "pollution": 0,
     "fleets": 0,
     "mark": "○",
-    "desc": "中立/未知"
+    "desc": "中立/未知",
+    "links": [
+     "bright",
+     "still_water"
+    ]
    },
    {
     "id": "shard",
@@ -33294,7 +33429,11 @@
     "pollution": 0,
     "fleets": 0,
     "mark": "○",
-    "desc": "中立/未知"
+    "desc": "中立/未知",
+    "links": [
+     "tallow",
+     "vega"
+    ]
    },
    {
     "id": "low",
@@ -33305,7 +33444,11 @@
     "pollution": 0,
     "fleets": 0,
     "mark": "○",
-    "desc": "中立/未知"
+    "desc": "中立/未知",
+    "links": [
+     "grey",
+     "sol2"
+    ]
    },
    {
     "id": "beacon",
@@ -33316,7 +33459,11 @@
     "pollution": 0,
     "fleets": 0,
     "mark": "○",
-    "desc": "中立/未知"
+    "desc": "中立/未知",
+    "links": [
+     "ash_ring",
+     "pale"
+    ]
    },
    {
     "id": "salt",
@@ -33327,7 +33474,13 @@
     "pollution": 0,
     "fleets": 0,
     "mark": "○",
-    "desc": "中立/未知"
+    "desc": "中立/未知",
+    "links": [
+     "alpha_3",
+     "latch",
+     "shoal",
+     "tallow"
+    ]
    },
    {
     "id": "spire",
@@ -33338,7 +33491,10 @@
     "pollution": 0,
     "fleets": 0,
     "mark": "◉",
-    "desc": "敌对"
+    "desc": "敌对",
+    "links": [
+     "notch"
+    ]
    },
    {
     "id": "drift",
@@ -33349,7 +33505,10 @@
     "pollution": 1,
     "fleets": 0,
     "mark": "◉",
-    "desc": "敌对"
+    "desc": "敌对",
+    "links": [
+     "cinder"
+    ]
    },
    {
     "id": "rust_belt",
@@ -33360,7 +33519,10 @@
     "pollution": 1,
     "fleets": 0,
     "mark": "",
-    "desc": "自由矿工的旧战场，拆件比挖矿赚。"
+    "desc": "自由矿工的旧战场，拆件比挖矿赚。",
+    "links": [
+     "grey"
+    ]
    },
    {
     "id": "ash_ring",
@@ -33371,7 +33533,12 @@
     "pollution": 4,
     "fleets": 0,
     "mark": "",
-    "desc": "一圈烧过的轨道，什么都没有了。"
+    "desc": "一圈烧过的轨道，什么都没有了。",
+    "links": [
+     "alpha",
+     "beacon",
+     "verge"
+    ]
    },
    {
     "id": "still_water",
@@ -33382,7 +33549,11 @@
     "pollution": 0,
     "fleets": 1,
     "mark": "",
-    "desc": "帷幕公约的水源星，安静得不正常。"
+    "desc": "帷幕公约的水源星，安静得不正常。",
+    "links": [
+     "old_gate",
+     "well"
+    ]
    },
    {
     "id": "broken_mast",
@@ -33393,7 +33564,12 @@
     "pollution": 2,
     "fleets": 0,
     "mark": "",
-    "desc": "沉船挤在一起，像一片断掉的桅杆。"
+    "desc": "沉船挤在一起，像一片断掉的桅杆。",
+    "links": [
+     "ironhold",
+     "latch",
+     "notch"
+    ]
    },
    {
     "id": "cold_forge",
@@ -33404,7 +33580,10 @@
     "pollution": 0,
     "fleets": 1,
     "mark": "",
-    "desc": "旧帝国的冶炼站，炉子凉了两百年。"
+    "desc": "旧帝国的冶炼站，炉子凉了两百年。",
+    "links": [
+     "kiln"
+    ]
    },
    {
     "id": "lone_lamp",
@@ -33415,7 +33594,11 @@
     "pollution": 0,
     "fleets": 0,
     "mark": "",
-    "desc": "我们最远的一个前哨。灯还亮着。"
+    "desc": "我们最远的一个前哨。灯还亮着。",
+    "links": [
+     "guixu",
+     "latch"
+    ]
    },
    {
     "id": "vega_2",
@@ -33426,7 +33609,12 @@
     "pollution": 0,
     "fleets": 1,
     "mark": "",
-    "desc": "织女星共同体的内环农业站。"
+    "desc": "织女星共同体的内环农业站。",
+    "links": [
+     "apse",
+     "pale",
+     "quiet"
+    ]
    },
    {
     "id": "alpha_3",
@@ -33437,7 +33625,11 @@
     "pollution": 0,
     "fleets": 2,
     "mark": "",
-    "desc": "南门二商团的中转站，什么都卖。"
+    "desc": "南门二商团的中转站，什么都卖。",
+    "links": [
+     "salt",
+     "shoal"
+    ]
    },
    {
     "id": "rift_9",
@@ -33448,7 +33640,13 @@
     "pollution": 5,
     "fleets": 0,
     "mark": "",
-    "desc": "第九个裂隙。观测记录只写到第三天。"
+    "desc": "第九个裂隙。观测记录只写到第三天。",
+    "links": [
+     "hush",
+     "longnight",
+     "notch",
+     "rift7"
+    ]
    },
    {
     "id": "old_gate",
@@ -33459,7 +33657,11 @@
     "pollution": 1,
     "fleets": 0,
     "mark": "",
-    "desc": "一道没有船能靠近的门。"
+    "desc": "一道没有船能靠近的门。",
+    "links": [
+     "still_water",
+     "sunken_bell"
+    ]
    },
    {
     "id": "sunken_bell",
@@ -33470,7 +33672,10 @@
     "pollution": 3,
     "fleets": 0,
     "mark": "",
-    "desc": "静默教团的聚集地。没人知道钟在哪。"
+    "desc": "静默教团的聚集地。没人知道钟在哪。",
+    "links": [
+     "old_gate"
+    ]
    },
    {
     "id": "guixu",
@@ -33481,7 +33686,10 @@
     "pollution": 7,
     "fleets": 0,
     "mark": "",
-    "desc": "星图上最深的一处。仪器到这儿就没数了。"
+    "desc": "星图上最深的一处。仪器到这儿就没数了。",
+    "links": [
+     "lone_lamp"
+    ]
    }
   ]
  },

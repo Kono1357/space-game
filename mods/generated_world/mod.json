@@ -207,7 +207,7 @@
      "_append": {
       "tileEdits": [
        {
-        "x": 4,
+        "x": 5,
         "y": 0,
         "interactable": "gw_world_terminal"
        }
@@ -6061,7 +6061,12 @@
      "desc": "生成世界-空间站-3 张图（含地下层）",
      "scene": "gw_gw1_s01_a",
      "generated": true,
-     "view": "gw_site_01"
+     "view": "gw_site_01",
+     "links": [
+      "sol",
+      "sol3",
+      "sol4"
+     ]
     },
     {
      "id": "gw_gw1_n02",
@@ -6077,7 +6082,12 @@
      "desc": "生成世界-殖民地-3 张图（含地下层）",
      "scene": "gw_gw1_s02_a",
      "generated": true,
-     "view": "gw_site_02"
+     "view": "gw_site_02",
+     "links": [
+      "cold_forge",
+      "furnace",
+      "kiln"
+     ]
     },
     {
      "id": "gw_gw1_n03",
@@ -6093,7 +6103,12 @@
      "desc": "生成世界-殖民地-4 张图（含地下层）",
      "scene": "gw_gw1_s03_a",
      "generated": true,
-     "view": "gw_site_03"
+     "view": "gw_site_03",
+     "links": [
+      "cinder",
+      "grey",
+      "sol2"
+     ]
     },
     {
      "id": "gw_gw1_n04",
@@ -6109,7 +6124,12 @@
      "desc": "生成世界-空间站-3 张图（含地下层）",
      "scene": "gw_gw1_s04_a",
      "generated": true,
-     "view": "gw_site_04"
+     "view": "gw_site_04",
+     "links": [
+      "ashfall",
+      "bright",
+      "sol3"
+     ]
     },
     {
      "id": "gw_gw1_n05",
@@ -6125,7 +6145,12 @@
      "desc": "生成世界-殖民地-4 张图（含地下层）",
      "scene": "gw_gw1_s05_a",
      "generated": true,
-     "view": "gw_site_05"
+     "view": "gw_site_05",
+     "links": [
+      "furnace",
+      "low",
+      "sol2"
+     ]
     },
     {
      "id": "gw_gw1_n06",
@@ -6141,7 +6166,12 @@
      "desc": "生成世界-殖民地-3 张图（含地下层）",
      "scene": "gw_gw1_s06_a",
      "generated": true,
-     "view": "gw_site_06"
+     "view": "gw_site_06",
+     "links": [
+      "ash_ring",
+      "echohub",
+      "pale"
+     ]
     },
     {
      "id": "gw_gw1_n07",
@@ -6157,7 +6187,12 @@
      "desc": "生成世界-空间站-4 张图（含地下层）",
      "scene": "gw_gw1_s07_a",
      "generated": true,
-     "view": "gw_site_07"
+     "view": "gw_site_07",
+     "links": [
+      "cold_forge",
+      "kiln",
+      "well"
+     ]
     },
     {
      "id": "gw_gw1_n08",
@@ -6173,7 +6208,12 @@
      "desc": "生成世界-地表-3 张图（含地下层）",
      "scene": "gw_gw1_s08_a",
      "generated": true,
-     "view": "gw_site_08"
+     "view": "gw_site_08",
+     "links": [
+      "grey",
+      "low",
+      "rust_belt"
+     ]
     },
     {
      "id": "gw_gw1_n09",
@@ -6189,7 +6229,12 @@
      "desc": "生成世界-地表-3 张图（含地下层）",
      "scene": "gw_gw1_s09_a",
      "generated": true,
-     "view": "gw_site_09"
+     "view": "gw_site_09",
+     "links": [
+      "shard",
+      "tallow",
+      "vega"
+     ]
     },
     {
      "id": "gw_gw1_n10",
@@ -6205,7 +6250,12 @@
      "desc": "生成世界-舰内-3 张图（含地下层）",
      "scene": "gw_gw1_s10_a",
      "generated": true,
-     "view": "gw_site_10"
+     "view": "gw_site_10",
+     "links": [
+      "cold_forge",
+      "furnace",
+      "kiln"
+     ]
     },
     {
      "id": "gw_gw1_n11",
@@ -6221,7 +6271,12 @@
      "desc": "生成世界-地表-3 张图（含地下层）",
      "scene": "gw_gw1_s11_a",
      "generated": true,
-     "view": "gw_site_11"
+     "view": "gw_site_11",
+     "links": [
+      "apse",
+      "quiet",
+      "vega_2"
+     ]
     },
     {
      "id": "gw_gw1_n12",
@@ -6237,7 +6292,12 @@
      "desc": "生成世界-舰内-3 张图（含地下层）",
      "scene": "gw_gw1_s12_a",
      "generated": true,
-     "view": "gw_site_12"
+     "view": "gw_site_12",
+     "links": [
+      "bright",
+      "still_water",
+      "well"
+     ]
     },
     {
      "id": "gw_gw1_n13",
@@ -6253,7 +6313,12 @@
      "desc": "生成世界-裂隙-3 张图（含地下层）",
      "scene": "gw_gw1_s13_a",
      "generated": true,
-     "view": "gw_site_13"
+     "view": "gw_site_13",
+     "links": [
+      "grey",
+      "low",
+      "rust_belt"
+     ]
     },
     {
      "id": "gw_gw1_n14",
@@ -6269,7 +6334,12 @@
      "desc": "生成世界-殖民地-3 张图（含地下层）",
      "scene": "gw_gw1_s14_a",
      "generated": true,
-     "view": "gw_site_14"
+     "view": "gw_site_14",
+     "links": [
+      "longnight",
+      "veil",
+      "verge"
+     ]
     },
     {
      "id": "gw_gw1_n15",
@@ -6285,7 +6355,12 @@
      "desc": "生成世界-裂隙-3 张图（含地下层）",
      "scene": "gw_gw1_s15_a",
      "generated": true,
-     "view": "gw_site_15"
+     "view": "gw_site_15",
+     "links": [
+      "cold_forge",
+      "kiln",
+      "old_gate"
+     ]
     },
     {
      "id": "gw_gw1_n16",
@@ -6301,7 +6376,12 @@
      "desc": "生成世界-裂隙-3 张图（含地下层）",
      "scene": "gw_gw1_s16_a",
      "generated": true,
-     "view": "gw_site_16"
+     "view": "gw_site_16",
+     "links": [
+      "drift",
+      "grey",
+      "rust_belt"
+     ]
     },
     {
      "id": "gw_gw1_n17",
@@ -6317,7 +6397,12 @@
      "desc": "生成世界-地表-3 张图（含地下层）",
      "scene": "gw_gw1_s17_a",
      "generated": true,
-     "view": "gw_site_17"
+     "view": "gw_site_17",
+     "links": [
+      "alpha_3",
+      "salt",
+      "shoal"
+     ]
     },
     {
      "id": "gw_gw1_n18",
@@ -6333,7 +6418,12 @@
      "desc": "生成世界-殖民地-3 张图（含地下层）",
      "scene": "gw_gw1_s18_a",
      "generated": true,
-     "view": "gw_site_18"
+     "view": "gw_site_18",
+     "links": [
+      "cold_forge",
+      "furnace",
+      "low"
+     ]
     }
    ]
   },

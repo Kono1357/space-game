@@ -1,7 +1,7 @@
 # 朔  场景层框架  项目说明书（AI 上下文文件）
 
 > 本文件由脚本扫描仓库生成（数字、字段、示例均从真实文件现算/现摘，未手抄）。
-> 生成时间：2026-10-02 07:59 +08:00　|　生成时基线：`node tests/run_all.js` 通过 803 / 失败 0
+> 生成时间：2026-10-02 08:46 +08:00　|　生成时基线：`node tests/run_all.js` 通过 830 / 失败 0
 > 位置：`D:/大肥鱼工作区/朔/space/AI_CONTEXT.md`
 
 ## 怎么用这份文件
@@ -34,7 +34,7 @@
 块登记表合并不覆盖（`SPACE_BLOCKS` 41 + `NESTED_BLOCKS` 5）、
 坏数据只降级不崩（`report.errors/warnings`）、存档 = 世界快照（`world` 字段要么进档要么在派生白名单）。
 
-现状（生成时实测）：构建 exit 0；`node tests/run_all.js` **803 项全绿**；
+现状（生成时实测）：构建 exit 0；`node tests/run_all.js` **830 项全绿**；
 `python tools/validate_space.py` 错误 0 / 警告 0；内容 25 场景 / 38 人 / 204 段对话 / 145 条事件。
 **未在真浏览器里验证过**（见第 8 节）。
 
@@ -66,31 +66,31 @@
 | 构建注入 | `SPACE_SPEC / SPACE_MODS / ZHANYI_KERNEL / SPACE_STARTER`（模板占位符 `/*__CORE__*/` `/*__SPEC__*/` `/*__MODS__*/` `/*__TEXTOUT__*/` `/*__SHELL__*/`）|
 | 页面元素 id | `stage`, `screen`, `info`, `err`, `modpanel`, `modmsg`, `modtext`, `modapply`, `modfile`, `modtemplate`, `modexport`, `modclear`, `modclose`, `modlist` |
 
-**文件结构（51 个文件，行数实测）**
+**文件结构（53 个文件，行数实测）**
 
 ```
   .gitignore                                     14 行      0.3 KB
   .perf_slack                                     2 行      0.0 KB
-  AI_CONTEXT.md                                 866 行     64.9 KB
+  AI_CONTEXT.md                                 868 行     65.1 KB
   CONTRIBUTING.md                               171 行     11.8 KB
   DESIGN.md                                     392 行     32.3 KB
-  DEVLOG.md                                     984 行     91.4 KB
+  DEVLOG.md                                    1052 行     95.2 KB
   HANDOFF.md                                    264 行     33.7 KB
   README.md                                     645 行     45.5 KB
   VISION.md                                      88 行      5.4 KB
   build_space.py                                167 行      8.1 KB
-  content/space.json                          39695 行    829.7 KB
-  engine/space-core.js                         3405 行    163.4 KB
+  content/space.json                          39903 行    832.3 KB
+  engine/space-core.js                         3624 行    173.8 KB
   engine/space-textout.js                       194 行      8.0 KB
   engine/space-textshell.js                     458 行     22.5 KB
   index.html                                     22 行      0.9 KB
   mods/example_mod/README.md                     36 行      1.7 KB
   mods/example_mod/mod.json                     277 行      6.2 KB
-  mods/generated_world/mod.json               23488 行    574.7 KB
+  mods/generated_world/mod.json               23578 行    575.9 KB
   preview_probe.png                             二进制     42.9 KB
   preview_text.png                              二进制     69.5 KB
   probe.html                                    119 行      5.3 KB
-  space-text.html                              4122 行   1113.4 KB
+  space-text.html                              4341 行   1125.9 KB
   space-text.tpl.html                            67 行      3.5 KB
   tests/fixtures/mod_bad_culture.json            53 行      1.1 KB
   tests/fixtures/mod_new_culture.json            41 行      0.9 KB
@@ -98,6 +98,7 @@
   tests/run_all.js                               27 行      1.7 KB
   tests/test_arch.js                            602 行     37.7 KB
   tests/test_build.js                           390 行     24.6 KB
+  tests/test_galaxy.js                          198 行      9.7 KB
   tests/test_maprules_parity.js                 144 行      7.4 KB
   tests/test_merge_parity.js                    314 行     16.2 KB
   tests/test_names.js                           351 行     19.5 KB
@@ -109,8 +110,9 @@
   tests/test_validate.js                        192 行     10.2 KB
   tests/test_world.js                           957 行     54.0 KB
   tools/browser_check.js                        365 行     20.9 KB
+  tools/galaxy_links.py                         189 行      8.3 KB
   tools/gen_maps.py                             740 行     35.7 KB
-  tools/gen_world.py                            929 行     52.3 KB
+  tools/gen_world.py                            961 行     54.0 KB
   tools/map_rules.py                            381 行     17.7 KB
   tools/preview.js                               94 行      3.4 KB
   tools/scaffold_mod.py                         104 行      5.2 KB
@@ -171,14 +173,14 @@
 | 存档桥（kernel op save/load/export -> localStorage） | 完整 | 同上 | `onKernel` |
 | F2 mod 面板（粘贴/选文件/示例模板/逐个移除/导出/显示警告） | 完整（超大 JSON 未测） | 同上 + `space-text.tpl.html` | `applyMods`/`renderModList`/`importFile`/`fillTemplate`/`exportMods`/`parseModText` |
 | mod 三入口（mods 目录 / F2 热加载 / scaffold 生成骨架） | 完整 | `build_space.py`、`tools/scaffold_mod.py`、`tools/starter_mod.json` | 构建时扫描 `mods/*/mod.json|manifest.json` |
-| 回归与校验（10 文件 803 项） | 完整 | `tests/*`、`tools/validate_space.py` | 见附录 A |
+| 回归与校验（11 文件 830 项） | 完整 | `tests/*`、`tools/validate_space.py` | 见附录 A |
 | 世界数据块（势力/领袖/科技/舰队/模块/设施/殖民地/资源/星系/行星/政治/遗物/任务/危机/胜负/文本池/事件链/对话池/场景类型/房间） | 占位（仅数据） | `content/space.json` | 引擎里除 `report.stats` 计数外不读；部分由 `views[].sections.source` 展示 |
 
 ### 3.4 生成时实测
 
 ```
-python build_space.py         -> exit 0（space-text.html 1113.4 KB，起手模板已编入）
-node tests/run_all.js         -> exit 0  合计：通过 803 / 失败 0
+python build_space.py         -> exit 0（space-text.html 1125.9 KB，起手模板已编入）
+node tests/run_all.js         -> exit 0  合计：通过 830 / 失败 0
 python tools/validate_space.py -> exit 0  错误 0 / 警告 0
 node tools/preview.js 80 24   -> exit 0（终端里打印画面）
 ```
@@ -748,7 +750,7 @@ R10 环境文本（7 个 `enter_scene` 钩子抽 `textPools`）、R11 `planetTyp
 
 【技术栈】JS(ES5 IIFE，无框架无 npm) + Python3 工具链；内核把世界+UI 合成 Screen 字符网格 -> ASCII -> 一个 <pre>；数据 = content/space.json 单一 JSON + mod JSON（mods/ 或 F2 粘贴，存 localStorage）；运行期零依赖。
 
-【命令】python build_space.py（改内容或引擎后必须跑）｜node tests/run_all.js（803 项全绿）｜python tools/validate_space.py（0 错 0 警）｜python tools/scaffold_mod.py 我的房间 --id my_room。
+【命令】python build_space.py（改内容或引擎后必须跑）｜node tests/run_all.js（830 项全绿）｜python tools/validate_space.py（0 错 0 警）｜python tools/scaffold_mod.py 我的房间 --id my_room。
 
 【已完成】场景编译(tiles+legend+presets+defaultLegend)、校验、tick、移动与门、视野迷雾、NPC 日程+BFS 寻路、交互、对话节点图、效果词 38+判定词 21、事件 141+上报 145、投影、视图(20，7 provider)、存档(含 rng)、热加载 reloadContent、整屏合成；开放性：宏 macros、钩子 hooks(8 火点)、stop 停手权、块全量 id 合并、私有块与 source 任意路径；外壳：键盘与鼠标寻路、Tab 环顾、X 查看、F3 诊断、自适应字号、F2 面板(粘/选文件/模板/移除/导出)。
 
@@ -783,12 +785,12 @@ node --check engine/space-core.js     # 改引擎后先过语法
 
 | 检查 | 命令 | 结果 |
 |---|---|---|
-| 构建 | `python build_space.py` | exit 0，`space-text.html` 1113.4 KB |
-| 回归 | `node tests/run_all.js` | exit 0，通过 803 / 失败 0 |
+| 构建 | `python build_space.py` | exit 0，`space-text.html` 1125.9 KB |
+| 回归 | `node tests/run_all.js` | exit 0，通过 830 / 失败 0 |
 | 内容校验 | `python tools/validate_space.py` | exit 0，错误 0 / 警告 0 |
 | 预览 | `node tools/preview.js 80 24` | exit 0 |
 
-测试文件与项数（实测）：world 206 项、text 30 项、shell 92 项、build 78 项、merge_parity 28 项、maprules_parity 11 项、validate 29 项、names 31 项、terrain 24 项、strategy 73 项
+测试文件与项数（实测）：world 206 项、text 30 项、shell 92 项、build 78 项、merge_parity 28 项、maprules_parity 11 项、validate 29 项、names 31 项、terrain 24 项、strategy 73 项、galaxy 27 项
 
 ## 附录 B 数据块计数表（生成时现算）
 
@@ -862,4 +864,4 @@ node --check engine/space-core.js     # 改引擎后先过语法
 1. 改完内容或引擎后跑一遍：`python build_space.py` -> `node tests/run_all.js` -> `python tools/validate_space.py`。
 2. 数字（块条数、测试项数、行数）如果变了，请同步更新本文件里对应段落；示例请从 `content/space.json` 现摘，不要手写。
 3. 有意义的进度变化请写进 `DEVLOG.md`（里程碑 / 已知问题 / 下一步），本文件只描述「当前状态」。
-4. 本文件由一次扫描生成（2026-10-01 09:42 +08:00），生成时基线：`node tests/run_all.js` 通过 803 / 失败 0。
+4. 本文件由一次扫描生成（2026-10-01 09:42 +08:00），生成时基线：`node tests/run_all.js` 通过 830 / 失败 0。

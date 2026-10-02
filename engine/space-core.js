@@ -2664,6 +2664,9 @@ Game.prototype.screenToScene = function(sx, sy){
 Game.prototype.resize = function(w, h){
   this.screenW = Math.max(40, w | 0); this.screenH = Math.max(18, h | 0);
   this.screen = new Screen(this.screenW, this.screenH, this.palette);
+  /* 屏幕模式：'scene' = 可走的房间；'galaxy' = 星图（战略层）。见 renderGalaxy。 */
+  this.screenMode = 'scene';
+  this.galaxyCur = null;        // 星图光标（吸附到星系 id）
 };
 Game.prototype.col = function(name, fallback){
   return resolveColor(name, this.palette, fallback);
@@ -2753,6 +2756,206 @@ Game.prototype.stepTutorial = function(){
 };
 
 /* ---------------- 主渲染 ---------------- */
+/* ============================== 星图模式（第 1 期）==============================
+ * 场景层是**可走的房间**；星图层不是 —— 它是战略层。所以这里不复用场景网格，
+ * 而是复用**同一块 Screen 和同一套 layout()**，只换"画什么"：
+ *     render() 入口分流 -> renderGalaxy() -> 还是 out.paint(screen)
+ * 好处：信息栏、日志栏、字号自适应、手机视口、视野计算全都不用改一行。
+ *
+ * 光标**吸附到星系上**（不是自由二维光标）：方向键做"朝那个方向的最近星系"选择。
+ * 手机上只有十字键，吸附比自由光标好用得多，而且永远有一个合法的选中项。
+ */
+Game.prototype.galaxyNodes = function(){
+  var out = [], list = asList(this.space && this.space.galaxy && this.space.galaxy.nodes);
+  var over = this.world.galaxy || {};
+  for (var i = 0; i < list.length; i++){
+    var n = list[i] || {}; if (!n.id) continue;
+    var o = over[n.id] || {};
+    out.push({
+      id: n.id, name: str(n.name, n.id),
+      x: num(n.x, 0), y: num(n.y, 0),
+      owner: (o.owner !== undefined) ? o.owner : str(n.owner, '?'),
+      fleets: num((o.fleets !== undefined) ? o.fleets : n.fleets, 0),
+      pollution: num((o.pollution !== undefined) ? o.pollution : n.pollution, 0),
+      links: isArr(n.links) ? n.links.slice() : [],   /* 复制：下面要补对称，不能改到内容 */
+      mark: str(n.mark, '*'), desc: str(n.desc, '')
+    });
+  }
+  /* 航道是**无向**的，但 mod 只会写自己那半边（新星系连到老星系，老星系那边不知道）。
+     这里补齐对称 —— 否则舰队从 A 看得到 B、从 B 看不到 A，寻路会单向。 */
+  var by = {};
+  for (i = 0; i < out.length; i++) by[out[i].id] = out[i];
+  for (i = 0; i < out.length; i++){
+    for (var j = 0; j < out[i].links.length; j++){
+      var other = by[out[i].links[j]];
+      if (other && other.links.indexOf(out[i].id) < 0) other.links.push(out[i].id);
+    }
+  }
+  for (i = 0; i < out.length; i++) out[i].links.sort();
+  return out;
+};
+Game.prototype.galaxyOwnerColor = function(owner){
+  if (owner === 'player_remnant') return 'good';
+  if (owner === 'abyss' || owner === 'iron_chorus' || owner === 'silent_order') return 'danger';
+  if (owner === 'veil_pact' || owner === 'alpha_traders') return 'accent';
+  if (owner === 'free_miners' || owner === 'scavenger_league') return 'npc2';
+  return 'ui_dim';
+};
+/* 星系坐标 -> 屏幕格子。等比缩放 + 撞位顺推，保证任何窗口尺寸下都不重叠。 */
+Game.prototype.galaxyProject = function(lay){
+  var ns = this.galaxyNodes();
+  var out = {}, i;
+  if (!ns.length) return out;
+  var x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (i = 0; i < ns.length; i++){
+    if (ns[i].x < x0) x0 = ns[i].x; if (ns[i].x > x1) x1 = ns[i].x;
+    if (ns[i].y < y0) y0 = ns[i].y; if (ns[i].y > y1) y1 = ns[i].y;
+  }
+  var padX = 3, padY = 2;
+  var wx = lay.winX + padX, wy = lay.winY + padY;
+  var ww = Math.max(8, lay.winW - padX * 2), wh = Math.max(6, lay.winH - padY - 1);
+  var spanX = Math.max(1, x1 - x0), spanY = Math.max(1, y1 - y0);
+  /* **等比缩放**：把 x 和 y 按同一个比例放，坐标系才不变形。
+     一开始图省事把 x 铺满、y 也铺满 —— 纵向被压扁 40%，星系挤到同一行，
+     长航道斜着穿过整张图，糊成一团。等比之后地图是居中的一块，
+     手机视口是竖的（40x44），等比刚好占满，比拉伸好看也好读。 */
+  var sc = Math.min((ww - 1) / spanX, (wh - 1) / spanY);
+  /* 等比之后如果还是宽的窗口，允许横向拉伸最多 2.2 倍 —— 宽屏上等比会只占两成宽度（浪费），
+     但拉过头坐标系就变形、长航道又开始穿越。2.2 是试出来的折中：手机竖屏用不到（本来就等比），
+     桌面宽屏能把地图铺开七成。 */
+  var sx = sc * Math.min(2.2, Math.max(1, (ww - 1) / Math.max(1, spanX * sc)));
+  var sy = sc;
+  var usedW = Math.round(spanX * sx), usedH = Math.round(spanY * sy);
+  wx += Math.max(0, Math.floor((ww - usedW) / 2));
+  wy += Math.max(0, Math.floor((wh - usedH) / 2));
+  var occ = {};
+  var sorted = ns.slice().sort(function(a, b){ return (a.y - b.y) || (a.x - b.x); });
+  for (i = 0; i < sorted.length; i++){
+    var n = sorted[i];
+    var px = wx + Math.round((n.x - x0) * sx);
+    var py = wy + Math.round((n.y - y0) * sy);
+    var guard = 0;
+    while (occ[px + ',' + py] && guard < wh){    // 撞位就往下顺推，推不动往上找
+      py += 1; guard++;
+      if (py > wy + wh - 1) py = wy + Math.round((n.y - y0) * sy) - guard;
+    }
+    if (py < wy) py = wy;
+    if (py > wy + wh - 1) py = wy + wh - 1;
+    if (px < wx) px = wx;
+    if (px > wx + ww - 1) px = wx + ww - 1;
+    occ[px + ',' + py] = n.id;
+    out[n.id] = { x: px, y: py };
+  }
+  return out;
+};
+Game.prototype.galaxyNode = function(id){
+  var ns = this.galaxyNodes();
+  for (var i = 0; i < ns.length; i++) if (ns[i].id === id) return ns[i];
+  return null;
+};
+/* 朝 (dx,dy) 方向选下一个星系：投影越正、偏得越少，越优先 */
+Game.prototype.galaxyMove = function(dx, dy){
+  var proj = this.galaxyProject(this.layout());
+  var cur = proj[this.galaxyCur];
+  if (!cur){
+    var ks = Object.keys(proj);
+    if (!ks.length) return false;
+    this.galaxyCur = ks[0]; return true;
+  }
+  var best = null;
+  for (var id in proj){
+    if (!has(proj, id) || id === this.galaxyCur) continue;
+    var vx = proj[id].x - cur.x, vy = proj[id].y - cur.y;
+    var along = vx * dx + vy * dy;
+    if (along <= 0) continue;
+    var across = Math.abs(vx * dy - vy * dx);
+    var score = along + across * 2.5;
+    if (best === null || score < best.s) best = { id: id, s: score };
+  }
+  if (!best) return false;
+  this.galaxyCur = best.id;
+  return true;
+};
+Game.prototype.galaxyLaneChar = function(dx, dy){
+  if (dy === 0) return '-';
+  if (dx === 0) return '|';
+  return (dx * dy > 0) ? '\\' : '/';
+};
+Game.prototype.renderGalaxy = function(lay){
+  var s = this.screen, ns = this.galaxyNodes(), proj = this.galaxyProject(lay), i, j;
+  var wx = lay.winX, wy = lay.winY, ww = lay.winW, wh = lay.winH;
+  s.fill(wx, wy, ww, wh, ' ', 'ui_dim', 'bg');
+  var byId = {};
+  for (i = 0; i < ns.length; i++) byId[ns[i].id] = ns[i];
+  /* --- 航道：先画线，星系会盖在上面 --- */
+  for (i = 0; i < ns.length; i++){
+    var a = ns[i], pa = proj[a.id]; if (!pa) continue;
+    for (j = 0; j < a.links.length; j++){
+      var b = byId[a.links[j]]; if (!b || a.id > b.id) continue;
+      var pb = proj[b.id]; if (!pb) continue;
+      var steps = Math.max(Math.abs(pb.x - pa.x), Math.abs(pb.y - pa.y));
+      if (steps <= 0) continue;
+      var dxs = Math.sign(pb.x - pa.x), dys = Math.sign(pb.y - pa.y);
+      var ch = this.galaxyLaneChar(dxs, dys);
+      /* 光标所在星系的航道点亮，其余压暗 —— 一张 60 多个星系、90 条航道的图，
+         全亮会糊成一团。玩家真正要看的是「我从这儿能去哪」。 */
+      var hot = (a.id === this.galaxyCur || b.id === this.galaxyCur);
+      var lfg = hot ? 'accent' : 'ui_dim';   /* palette 里没有 'lane' 键，写它会回退成亮灰 */
+      for (var k = 1; k < steps; k++){
+        var lx = pa.x + Math.round((pb.x - pa.x) * k / steps);
+        var ly = pa.y + Math.round((pb.y - pa.y) * k / steps);
+        if (lx === pa.x && ly === pa.y) continue;
+        if (lx === pb.x && ly === pb.y) continue;
+        s.set(lx, ly, ch, lfg, 'bg');
+      }
+    }
+  }
+  /* --- 星系 --- */
+  for (i = 0; i < ns.length; i++){
+    var n = ns[i], p = proj[n.id]; if (!p) continue;
+    var fg = this.galaxyOwnerColor(n.owner);
+    var cur = (n.id === this.galaxyCur);
+    s.set(p.x, p.y, cur ? '+' : (n.id === 'sol' ? '@' : '*'), cur ? 'sel_fg' : fg, cur ? 'sel_bg' : 'bg');
+    if (n.fleets > 0 && p.y + 1 < wy + wh) s.set(p.x, p.y + 1, '^', 'accent', 'bg');
+  }
+  /* 光标框**最后画**：按顺序画点的话，后画的相邻星系会把先画的 [ 或 ] 盖掉
+     （撞位顺推允许两个星系贴在相邻列，实测真的盖掉过一个）。 */
+  var cp = proj[this.galaxyCur];
+  if (cp){
+    if (cp.x - 1 >= wx) s.set(cp.x - 1, cp.y, '[', 'sel_fg', 'sel_bg');
+    if (cp.x + 1 < wx + ww) s.set(cp.x + 1, cp.y, ']', 'sel_fg', 'sel_bg');
+  }
+  /* --- 底部：选中星系的一句话 + 图例（记不住的东西就写在屏幕上）--- */
+  var line = wy + wh - 1;
+  var sel = this.galaxyNode(this.galaxyCur);
+  s.hline(wx, line - 1, ww, '-', 'ui_dim', 'bg');
+  if (sel){
+    var txt = ' ' + sel.name + '　' + this.galaxyOwnerName(sel.owner) +
+              '　航道 ' + sel.links.length + ' 条';
+    if (sel.fleets) txt += '　舰队 ' + sel.fleets;
+    if (sel.pollution) txt += '　污染 ' + sel.pollution;
+    s.text(wx, line, txt, 'ui_bright', 'bg');
+  } else {
+    s.text(wx, line, ' 银河里还没有已知的星系。', 'ui_dim', 'bg');
+  }
+  return true;
+};
+Game.prototype.galaxyOwnerName = function(oid){
+  var fs = asList(this.space && this.space.factions), i;
+  for (i = 0; i < fs.length; i++) if (fs[i] && fs[i].id === oid) return str(fs[i].name, oid);
+  return oid === '?' ? '未知' : oid;
+};
+Game.prototype.toggleGalaxy = function(on){
+  var want = (on === undefined) ? (this.screenMode !== 'galaxy') : !!on;
+  if (want && !this.galaxyCur){
+    var ns = this.galaxyNodes();
+    for (var i = 0; i < ns.length; i++) if (ns[i].id === 'sol') { this.galaxyCur = 'sol'; break; }
+    if (!this.galaxyCur && ns.length) this.galaxyCur = ns[0].id;
+  }
+  this.screenMode = want ? 'galaxy' : 'scene';
+  return this.screenMode;
+};
+
 Game.prototype.render = function(){
   var t0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : 0;
   var lay = this.layout();
@@ -2797,6 +3000,17 @@ Game.prototype.render = function(){
     s.fill(0, row1, W, 1, ' ', 'accent_fg', 'accent_bg');
     s.text(1, row1, cutW(this.world.hint, W - 2), 'accent_fg', 'accent_bg');
   } else {
+    if (this.screenMode === 'galaxy'){
+      var gsel = this.galaxyNode(this.galaxyCur);
+      s.fill(0, row1, W, 1, ' ', 'ui', 'panel');
+      s.text(1, row1, ' 银河 ', 'accent', 'panel');
+      var gtxt = ' 方向键选星系　Enter 打开　G 回到场景';
+      if (gsel) gtxt = ' ' + gsel.name + '（' + this.galaxyOwnerName(gsel.owner) + '）' +
+                       '　航道 ' + gsel.links.length + ' 条' + gtxt;
+      s.text(9, row1, cutW(gtxt, W - 11), 'ui', 'panel');
+      var nmap = this.galaxyNodes().length;
+      s.textRight(W - 2, row1, nmap + ' 个星系 ', 'ui_dim', 'panel');
+    } else {
     s.fill(0, row1, W, 1, ' ', 'ui', 'panel');
     var leftTag = ' ' + this.sceneName(p.scene) + ' ';
     var lx = 1, lw = strW(leftTag);
@@ -2815,11 +3029,15 @@ Game.prototype.render = function(){
     }
     var avail = W - 3 - (lx + lw);
     if (avail > 4) s.text(lx + lw, row1, cutW(info, avail), 'ui', 'panel');
+    }
   }
 
   /* --- 地图：往固定视口窗口里画；场景按 origin 偏移（小图居中 / 大图滚动） --- */
   var mapW = lay.mapW, mapH = lay.mapH, mapTop = lay.mapTop;   /* 侧栏 / 下方日志 / 叠加层还要用 */
   var seenArr = this.world.fog[p.scene];
+  if (this.screenMode === 'galaxy'){
+    this.renderGalaxy(lay);
+  } else {
   for (var row = 0; row < winH; row++){
     var sy = winY + row;
     for (var col = 0; col < winW; col++){
@@ -2839,10 +3057,11 @@ Game.prototype.render = function(){
     /* 侧栏竖线 */
     if (lay.side) s.set(lay.sideX, sy, '\u2502', 'ui_dim', 'panel');
   }
+  }
   /* 小图：给场景描个边，免得边缘字符和内容混在一起看不清。
      但场景自己就有一圈实心外框（门不算漏）时不再描 —— 轮廓化之后墙本身就是 - | +，
      再套一圈同样的线会叠成两层，反而更乱。 */
-  if (g && !ringClosed(g, this.presets) && (g.w < winW || g.h < winH)){
+  if (this.screenMode !== 'galaxy' && g && !ringClosed(g, this.presets) && (g.w < winW || g.h < winH)){
     var fx = winX + originX - 1, fy = winY + originY - 1;
     var fw = g.w + 2, fh = g.h + 2;
     for (var fi = 0; fi < fw; fi++){
@@ -2860,7 +3079,7 @@ Game.prototype.render = function(){
     }
   }
   /* NPC */
-  if (g){
+  if (g && this.screenMode !== 'galaxy'){
     var here = this.npcsHere(p.scene);
     for (var n = 0; n < here.length; n++){
       var a2 = this.world.npcPos[here[n]]; if (!a2) continue;
@@ -2874,7 +3093,7 @@ Game.prototype.render = function(){
     }
   }
   /* 玩家 @ */
-  if (g){
+  if (g && this.screenMode !== 'galaxy'){
     var px = winX + p.x + originX, py = winY + p.y + originY;
     var pc = this.cellAt(p.scene, p.x, p.y);
     s.set(px, py, str(p.symbol, '@'), 'player', pc ? pc.bg : 'floor_bg');
