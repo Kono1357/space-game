@@ -2129,6 +2129,10 @@ Game.prototype.resolveView = function(id){
   return null;
 };
 Game.prototype.openView = function(id){
+  /* 记下打开之前是哪个面板：? 键位表自己也是一个面板，不记住的话它永远只会报
+     「面板打开中」，因为按 ? 的那一刻新面板已经开了。 */
+  var _prev = this.ui.view ? this.ui.view.id : null;
+  this.ui.viewFrom = (id === 'keys') ? _prev : null;
   var v = this.resolveView(id);
   if (!v){ this.warn('未知视图：' + id); return false; }
   this.ui.view = { id: id, cursor: 0, scroll: 0, def: v };
@@ -3416,7 +3420,13 @@ Game.prototype.drawView = function(s, top, height){
       ax = s.text(ax, ay + 1, label + '  ', sel2 ? 'sel_fg' : 'ui', sel2 ? 'sel_bg' : 'panel');
     }
   }
-  if (st.rows && st.rows.length) s.textRight(bx + boxW - 3, by + boxH - 1, ' [\u2191\u2193 选择] [回车 确定] ', 'ui_dim', 'panel');
+  /* 统一操作行（第 1 期「统一交互骨架」的可见部分）：
+     以前每个面板各画各的，玩家得靠记；现在每个面板底部都是同一句话，按 ? 还能展开看全部。 */
+  if (footer){
+    s.fill(bx + 1, by + boxH - 1, boxW - 2, 1, ' ', 'ui_dim', 'panel');
+    s.text(bx + 2, by + boxH - 1, cutW(' ↑↓ 选择　回车 确定　数字 1-9 快选　Esc 返回　? 当前可用按键', boxW - 4), 'ui_dim', 'panel');
+  }
+  if (st.rows && st.rows.length) s.textRight(bx + boxW - 3, by + boxH - 2, ' [\u2191\u2193 选择] [回车 确定] ', 'ui_dim', 'panel');
 };
 
 /* ---------------- 阅读弹层（长文本） ---------------- */
@@ -3500,6 +3510,61 @@ function colVal(g, c, field){
   if (g.world.counters[k] !== undefined) return num(g.world.counters[k], 0);
   return num(c[field], 0);
 }
+/* 当前可用的按键（第 1 期「? 键位表」）。
+   问题 3 说「内容太多记不住」—— 那就别让你记：任何时候按 ? 都告诉你现在能按什么。
+   状态不同键不同：星图上 / 场景里 / 视图开着 / 对话里 / 阅读弹层里。 */
+registerViewProvider('keymap_now', function(g){
+  var out = [], ui = g.ui || {};
+  function add(k, t){ out.push({ text: ' ' + pad(k, 16) + t, fg: 'ui' }); }
+  function head(t){ out.push({ text: ' ' + t, fg: 'accent' }); }
+  if (ui.reader){
+    head('阅读弹层');
+    add('↑ ↓ / W S', '滚动一行');
+    add('PgUp / PgDn', '翻一页');
+    add('空格', '下一页');
+    add('Esc / L', '关闭');
+  } else if (ui.dialogue){
+    head('对话中');
+    add('↑ ↓', '选选项');
+    add('回车 / E', '确定这一项');
+    add('Esc', '结束对话');
+  } else if (ui.view && ui.view.id === 'keys'){
+    /* 键位表自己开着：报「打开它之前」的状态 */
+    var from = ui.viewFrom;
+    if (from){ head('面板：' + g.viewName(from)); add('↑ ↓', '选择'); add('回车 / E', '执行选中的动作'); add('数字 1-9', '直接执行第 N 个动作'); add('Esc', '关闭面板'); add('?', '就是这里'); }
+    else if (g.screenMode === 'galaxy'){ head('星图（你在银河上）'); add('方向键 / WASD', '选星系'); add('回车 / E', '打开这个星系'); add('G / Esc', '回到地表'); add('?', '就是这里'); }
+    else { head('地表（你在' + g.sceneName(g.world.player.scene) + '）'); add('方向键 / WASD', '走路'); add('E / 回车', '和面前的东西交互'); add('X', '查看脚下／周围一眼'); add('Tab', '环顾：这场景里有什么、门通向哪'); add('L', '日志全文'); add('M', '任务与进度'); add('G', '上星图'); add('1 - 5', '速度（5 = 暂停）'); add('F2', 'mod 面板'); add('F3', '诊断'); add('F4', '收起底下那行状态'); }
+  } else if (ui.view){
+    head('面板：' + g.viewName(ui.view.id));
+    add('↑ ↓', '选择');
+    add('回车 / E', '执行选中的动作');
+    add('数字 1-9', '直接执行第 N 个动作');
+    add('Esc', '关闭面板');
+    add('?', '就是这里');
+  } else if (g.screenMode === 'galaxy'){
+    head('星图（你在银河上）');
+    add('方向键 / WASD', '选星系');
+    add('回车 / E', '打开这个星系');
+    add('G / Esc', '回到地表');
+    add('?', '就是这里');
+  } else {
+    head('地表（你在' + g.sceneName(g.world.player.scene) + '）');
+    add('方向键 / WASD', '走路');
+    add('E / 回车', '和面前的东西交互');
+    add('X', '查看脚下／周围一眼');
+    add('Tab', '环顾：这场景里有什么、门通向哪');
+    add('L', '日志全文');
+    add('M', '任务与进度');
+    add('G', '上星图');
+    add('1 - 5', '速度（5 = 暂停）');
+    add('F2', 'mod 面板');
+    add('F3', '诊断（校验报告）');
+    add('F4', '收起／展开底下那行状态');
+  }
+  out.push({ text: '', fg: 'ui_dim' });
+  out.push({ text: ' 记不住没关系：任何时候按 ? 都会重新列一遍。', fg: 'ui_dim' });
+  return out;
+});
 registerViewProvider('galaxy_sel', function(g){
   var n = g.galaxyNode(g.galaxyCur), out = [];
   if (!n){ out.push({ text: '星图上没有选中的星系。', fg: 'ui_dim' }); return out; }

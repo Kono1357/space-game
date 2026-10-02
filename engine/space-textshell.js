@@ -374,7 +374,8 @@ if (modList && modList.addEventListener){
     if ((k === 'g' || k === 'G') && !g.ui.view && !g.ui.dialogue && g.screenMode !== 'galaxy'){
       g.toggleGalaxy(true); resize(); render(); drawInfo(); e.preventDefault(); return;
     }
-    if (k === '?' || k === '/'){ g.openView('help'); render(); drawInfo(); e.preventDefault(); return; }
+    /* ? = 当前可用按键（第 1 期）。内容里没这个视图就退回老的静态帮助。 */
+    if (k === '?' || k === '/'){ g.openView(g.idx.views['keys'] ? 'keys' : 'help'); render(); drawInfo(); e.preventDefault(); return; }
     if (k === 'l' || k === 'L'){ g.openReader({ title: '日志全文', lines: g.readerLog() }); render(); drawInfo(); e.preventDefault(); return; }
     if (k === 'm' || k === 'M'){ g.openReader({ title: '任务与指令', lines: g.readerOrders() }); render(); drawInfo(); e.preventDefault(); return; }
     if (g.world.gameOver){

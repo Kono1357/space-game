@@ -26549,6 +26549,27 @@
       ]
      }
     ]
+   },
+   {
+    "id": "keys",
+    "title": "当前可用按键",
+    "width": 72,
+    "sections": [
+     {
+      "title": " 现在能按什么 ",
+      "provider": "keymap_now"
+     }
+    ],
+    "actions": [
+     {
+      "text": "关闭",
+      "effects": [
+       {
+        "type": "close_view"
+       }
+      ]
+     }
+    ]
    }
   ]
  },

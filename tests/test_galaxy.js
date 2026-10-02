@@ -302,6 +302,57 @@ section('⑧ 舰队位置进存档');
      JSON.stringify(g2.world.fleetMv));
 })();
 
+
+/* ---------------------------------------------------------------- ⑨ 第 1 期 UI */
+section('⑨ ? 上下文键位表 + 统一操作行 ★');
+
+(function (){
+  var g = newGame();
+  ok('内容里有 keys 视图', !!built.idx.views['keys']);
+  ok('keymap_now 提供者已注册', typeof Core.viewProviders.keymap_now === 'function');
+  function keys(g2){ g2.openView('keys'); var t = (g2.ui.view.lines || []).map(function (l){ return String(l.text||''); }).join('\n'); g2.closeView(); return t; }
+
+  var atScene = keys(g);
+  ok('在地表按 ? 报的是地表能按的键 ★',
+     atScene.indexOf('地表') >= 0 && atScene.indexOf('走路') >= 0 && atScene.indexOf('环顾') >= 0,
+     atScene.split('\n').slice(1,3).join(' | '));
+  ok('地表键位里包含「上星图」和速度键', atScene.indexOf('上星图') >= 0 && atScene.indexOf('速度') >= 0);
+
+  var g2 = newGame(); g2.toggleGalaxy(true);
+  var atGalaxy = keys(g2);
+  ok('在星图按 ? 报的是星图能按的键 ★', atGalaxy.indexOf('星图') >= 0 && atGalaxy.indexOf('选星系') >= 0,
+     atGalaxy.split('\n').slice(1,3).join(' | '));
+  ok('星图键位和地表键位确实不同（是上下文的，不是一张死表）★',
+     atGalaxy !== atScene && atGalaxy.indexOf('环顾') < 0);
+
+  var g3 = newGame();
+  g3.openView('fleet_roster');
+  var atPanel = keys(g3);
+  ok('在面板里按 ? 报的是「面板：xxx」（记住打开前是什么）★',
+     atPanel.indexOf('面板：') >= 0 && atPanel.indexOf('舰队名册') >= 0,
+     atPanel.split('\n').slice(1,3).join(' | '));
+
+  var g4 = newGame();
+  g4.openReader({ title: 'x', lines: ['a','b','c'] });
+  var atReader = keys(g4);
+  ok('在阅读弹层里按 ? 报的是滚动键', atReader.indexOf('阅读弹层') >= 0 && atReader.indexOf('翻一页') >= 0,
+     atReader.split('\n').slice(1,3).join(' | '));
+
+  /* 统一操作行：每个视图底部同一句话（第 1 期「统一交互骨架」的可见部分） */
+  var g5 = newGame();
+  var ids = Object.keys(built.idx.views).slice(0, 12), bad = [];
+  ids.forEach(function (vid){
+    var gg = newGame();
+    if (!gg.openView(vid)) return;
+    gg.render();
+    var scr = '';
+    for (var y = 0; y < gg.screen.h; y++)
+      for (var x = 0; x < gg.screen.w; x++) scr += gg.screen.ch[y * gg.screen.w + x];
+    if (scr.replace(/\u0000/g, '').indexOf('回车 确定') < 0) bad.push(vid);
+  });
+  ok('随便挑 12 个面板，底部都有同一行操作提示 ★', bad.length === 0, bad.join(','));
+})();
+
 console.log('\n========================================');
 console.log('通过 ' + pass + ' / 失败 ' + fail);
 process.exit(fail ? 1 : 0);

@@ -133,7 +133,10 @@ ok('环顾四周里写着坐标和方位', /东北|西北|东南|西南|东|西|
 keys('Escape');
 ok('Esc 关掉终端', !g.ui.view);
 keys('?');
-ok('? 打开操作说明', !!g.ui.view && g.ui.view.id === 'help', g.ui.view && g.ui.view.id);
+/* 第 1 期把 ? 改成了「当前可用按键」——它按你**现在在哪**列键（地表/星图/面板/对话/弹层各不同），
+   不再是那张静态的 help。内容里没有 keys 视图时才退回 help。 */
+ok('? 打开当前可用按键', !!g.ui.view && (g.ui.view.id === 'keys' || g.ui.view.id === 'help'),
+   g.ui.view && g.ui.view.id);
 keys('Escape');
 keys('x');
 ok('X 进入查看模式', !!g.ui.look);
