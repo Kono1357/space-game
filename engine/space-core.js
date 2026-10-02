@@ -1617,6 +1617,7 @@ Game.prototype.tickOnce = function(){
 Game.prototype.onTick = function(dt){
   if (this.world.gameOver) return;
   this.fireHooks('tick', {});
+  this.stepFleet();                                   /* 舰队在航道上推进（第 1 期）*/
   if (this.world.tick % DAY === 0) this.fireHooks('day', {});
   this.stepTutorial();
   this.updateSchedules();
@@ -2482,6 +2483,7 @@ Game.prototype.serialize = function(){
     known: clone(w.known), visited: clone(w.visited), seenDialogues: clone(w.seenDialogues), seenViews: clone(w.seenViews),
     firedRules: clone(w.firedRules), pending: clone(w.pending), builds: clone(w.builds), chains: clone(w.chains), crisis: clone(w.crisis), galaxy: clone(w.galaxy),
     tileOverrides: clone(w.tileOverrides), npcPos: clone(w.npcPos), npcPosts: clone(w.npcPosts),
+    fleetMv: clone(w.fleetMv || null),      /* 主力舰队在星图上的位置（第 1 期）*/
     rng: (isFn(this.rng.state) ? this.rng.state() : 0),
     fog: fog, player: clone(w.player), log: w.log.slice(-80), hint: w.hint, hintUntil: w.hintUntil,
     tutStep: w.tutStep, gameOver: w.gameOver, lastAuto: w.lastAuto,
@@ -2493,7 +2495,7 @@ Game.prototype.deserialize = function(o){
   var w = this.world;
   if (num(o.v, 1) > SAVE_VERSION) this.warn('存档版本 v' + o.v + ' 比内核（v' + SAVE_VERSION + '）新，只能读认出认识的部分');
   w.tick = num(o.tick, w.tick);
-  var keys = ['flags','counters','items','known','visited','seenDialogues','firedRules','seenViews','pending','builds','tileOverrides','npcPos','npcPosts','chains','crisis','galaxy'];
+  var keys = ['flags','counters','items','known','visited','seenDialogues','firedRules','seenViews','pending','builds','tileOverrides','npcPos','npcPosts','chains','crisis','galaxy','fleetMv'];
   for (var i = 0; i < keys.length; i++) w[keys[i]] = clone(o[keys[i]] || {});
   /* 老存档缺了新加的计数器：用 initialState 兜底，别让新规则把 undefined 当成 0（会误判败北）*/
   var initC = getPath(this.space, 'initialState.counters', {}) || {};
@@ -2925,6 +2927,11 @@ Game.prototype.renderGalaxy = function(lay){
     if (cp.x - 1 >= wx) s.set(cp.x - 1, cp.y, '[', 'sel_fg', 'sel_bg');
     if (cp.x + 1 < wx + ww) s.set(cp.x + 1, cp.y, ']', 'sel_fg', 'sel_bg');
   }
+  /* 主力舰队：移动中画在航道上（按 tick 插值），停下时画在所在星系 */
+  var fp = this.fleetScreenPos(proj);
+  if (fp && fp.x >= wx && fp.x < wx + ww && fp.y >= wy && fp.y < wy + wh){
+    s.set(fp.x, fp.y, '\u25b2', 'accent_fg', this.fleetMoving() ? 'accent_bg' : 'bg');
+  }
   /* --- 底部：选中星系的一句话 + 图例（记不住的东西就写在屏幕上）--- */
   var line = wy + wh - 1;
   var sel = this.galaxyNode(this.galaxyCur);
@@ -2934,11 +2941,33 @@ Game.prototype.renderGalaxy = function(lay){
               '　航道 ' + sel.links.length + ' 条';
     if (sel.fleets) txt += '　舰队 ' + sel.fleets;
     if (sel.pollution) txt += '　污染 ' + sel.pollution;
-    s.text(wx, line, txt, 'ui_bright', 'bg');
+    s.text(wx, line, cutW(txt, ww - 24), 'ui_bright', 'bg');
+    /* 主力在哪 / 还有多久到 —— 常驻右下角，不用去翻面板 */
+    var ftxt;
+    if (this.fleetMoving()){
+      var fm = Math.max(0, Math.ceil((this.world.fleetMv.t1 - this.world.tick) / 60));
+      ftxt = '▲ ' + this.galaxyName(this.world.fleetMv.from) + '->' + this.galaxyName(this.world.fleetMv.to) + ' ' + fm + 'h ';
+    } else {
+      ftxt = '▲ 主力在 ' + this.galaxyName(this.fleetAt()) + ' ';
+    }
+    s.textRight(wx + ww - 1, line, ftxt, this.fleetMoving() ? 'accent' : 'ui_dim', 'bg');
   } else {
     s.text(wx, line, ' 银河里还没有已知的星系。', 'ui_dim', 'bg');
   }
   return true;
+};
+Game.prototype.galaxyName = function(id){
+  var n = this.galaxyNode(id);
+  return n ? n.name : str(id, '?');
+};
+/* 星图上按 Enter：打开光标所在星系的视图（视图由内容层定义，引擎只管开门） */
+Game.prototype.galaxyOpenNode = function(){
+  if (!this.galaxyCur) this.galaxyCur = 'sol';
+  if (!this.idx.views['galaxy_node']){
+    this.log('（内容里没有 galaxy_node 视图）', 'dim');
+    return false;
+  }
+  return this.openView('galaxy_node');
 };
 Game.prototype.galaxyOwnerName = function(oid){
   var fs = asList(this.space && this.space.factions), i;
@@ -2955,6 +2984,111 @@ Game.prototype.toggleGalaxy = function(on){
   this.screenMode = want ? 'galaxy' : 'scene';
   return this.screenMode;
 };
+
+/* ============================== 舰队在星图上移动（第 1 期）==============================
+ * 群星最核心的手感之一：**舰队沿航道走，要花时间**。你把一支舰队派出去，
+ * 看着它一格一格挪过去，这几分钟里你得想别的事 —— 没有这个，星图只是一张静态关系图。
+ *
+ * 移动的是「你的主力舰队」（一支 token），存在 world.fleetMv：
+ *   { at: 现在在哪个星系, from/to: 移动中, t0/t1: 出发/到达 tick }
+ * `fleets` 计数器仍然是总量（造舰、打仗扣的还是它）。两者不冲突：
+ *   token 表示"主力在哪"，计数器表示"你有几支"。
+ */
+Game.prototype.fleetHopsBetween = function(a, b){
+  var ns = this.galaxyNodes(), by = {}, i;
+  for (i = 0; i < ns.length; i++) by[ns[i].id] = ns[i];
+  if (!by[a] || !by[b]) return -1;
+  if (a === b) return 0;
+  var seen = {}, q = [[a, 0]];
+  seen[a] = 1;
+  while (q.length){
+    var cur = q.shift(), nb = by[cur[0]] ? by[cur[0]].links : [];
+    for (i = 0; i < nb.length; i++){
+      if (nb[i] === b) return cur[1] + 1;
+      if (by[nb[i]] && !seen[nb[i]]){ seen[nb[i]] = 1; q.push([nb[i], cur[1] + 1]); }
+    }
+  }
+  return -1;                                   /* 走不到：没有航道 */
+};
+Game.prototype.fleetAt = function(){
+  var f = this.world.fleetMv;
+  return (f && f.at) ? f.at : (this.world.fleetMv = { at: 'sol', from: null, to: null, t0: 0, t1: 0 }).at;
+};
+Game.prototype.fleetMoving = function(){
+  var f = this.world.fleetMv;
+  return !!(f && f.to && this.world.tick < f.t1);
+};
+Game.prototype.fleetSend = function(target){
+  var ns = this.galaxyNodes(), by = {}, i;
+  for (i = 0; i < ns.length; i++) by[ns[i].id] = ns[i];
+  if (!by[target]){ this.log('没有这个星系：' + target, 'warn'); return false; }
+  var f = this.world.fleetMv || (this.world.fleetMv = { at: 'sol', from: null, to: null, t0: 0, t1: 0 });
+  if (this.fleetMoving()){ this.log('主力舰队还在路上。', 'warn'); return false; }
+  var cur = this.fleetAt();
+  if (cur === target){ this.log('主力舰队已经在 ' + by[target].name + ' 了。', 'info'); return false; }
+  var hops = this.fleetHopsBetween(cur, target);
+  if (hops < 0){ this.log(by[target].name + ' 和这里之间没有航道，去不了。', 'warn'); return false; }
+  var per = Math.max(1, num(this.cfg.fleetTicksPerHop, 120));    /* 每跳 2 小时 */
+  f.at = cur; f.from = cur; f.to = target; f.t0 = this.world.tick; f.t1 = this.world.tick + hops * per;
+  this.log('【舰队】主力离开 ' + by[cur].name + '，前往 ' + by[target].name +
+           '（' + hops + ' 跳，约 ' + Math.round(hops * per / 60) + ' 小时）。', 'info');
+  this.world.hint = '舰队在航道上。到了会有动静。';
+  this.world.hintUntil = this.world.tick + 900;
+  return true;
+};
+Game.prototype.stepFleet = function(){
+  var f = this.world.fleetMv;
+  if (!f || !f.to || this.world.tick < f.t1) return;
+  var to = f.to;
+  f.at = to; f.from = null; f.to = null; f.t0 = f.t1 = 0;
+  var ns = this.galaxyNodes(), i, nm = to, owner = '?';
+  for (i = 0; i < ns.length; i++) if (ns[i].id === to){ nm = ns[i].name; owner = ns[i].owner; }
+  this.log('【舰队】主力抵达 ' + nm + '。', 'good');
+  this.world.hint = '主力到了 ' + nm + '。按 Enter 看这里有什么。';
+  this.world.hintUntil = this.world.tick + 1200;
+  /* 把船开到敌对星系门口，对方不会没反应 */
+  if (owner && owner !== 'player_remnant'){
+    var rel = num(this.world.counters['rel_' + owner], 0);
+    if (rel <= -3){
+      this.world.counters['rel_' + owner] = rel - 1;
+      this.log('【外交】' + this.factionName(owner) + '对你的态度又差了一点（' +
+               rel + ' -> ' + (rel - 1) + '）。', 'warn');
+    }
+  }
+};
+Game.prototype.factionName = function(fid){
+  var fs = asList(this.space && this.space.factions), i;
+  for (i = 0; i < fs.length; i++) if (fs[i] && fs[i].id === fid) return str(fs[i].name, fid);
+  return fid;
+};
+Game.prototype.fleetScreenPos = function(proj){
+  var f = this.world.fleetMv, at = this.fleetAt();
+  if (!this.fleetMoving() || !f || !proj[f.from] || !proj[f.to]) return proj[at] || null;
+  var k = clamp((this.world.tick - f.t0) / Math.max(1, f.t1 - f.t0), 0, 1);
+  var a = proj[f.from], b = proj[f.to];
+  return { x: Math.round(a.x + (b.x - a.x) * k), y: Math.round(a.y + (b.y - a.y) * k) };
+};
+Game.prototype.galaxyLand = function(nodeId){
+  var ns = this.galaxyNodes(), n = null, i;
+  for (i = 0; i < ns.length; i++) if (ns[i].id === nodeId) n = ns[i];
+  if (!n){ this.log('没有这个星系：' + nodeId, 'warn'); return false; }
+  var list = asList(this.space && this.space.galaxy && this.space.galaxy.nodes), by = {};
+  for (i = 0; i < list.length; i++) if (list[i]) by[list[i].id] = list[i];
+  var scene = by[n.id] ? str(by[n.id].scene, '') : '';
+  if (!scene || !this.idx.scenes[scene]){
+    this.log('【降落】' + n.name + ' 没有可降落的地表 —— 这里只有航道和一个坐标。', 'dim');
+    this.world.hint = n.name + ' 还没铺地表。';
+    this.world.hintUntil = this.world.tick + 900;
+    return false;
+  }
+  this.toggleGalaxy(false);
+  this.teleport(scene);
+  this.log('【降落】' + n.name + '：你踏上了它的地表。', 'good');
+  return true;
+};
+registerEffect('galaxy_toggle', function(g, e){ g.toggleGalaxy(e.on === undefined ? undefined : !!e.on); });
+registerEffect('fleet_send', function(g, e){ g.fleetSend(e.node || g.galaxyCur); });
+registerEffect('galaxy_land', function(g, e){ g.galaxyLand(e.node || g.galaxyCur); });
 
 Game.prototype.render = function(){
   var t0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : 0;
@@ -3366,6 +3500,20 @@ function colVal(g, c, field){
   if (g.world.counters[k] !== undefined) return num(g.world.counters[k], 0);
   return num(c[field], 0);
 }
+registerViewProvider('galaxy_sel', function(g){
+  var n = g.galaxyNode(g.galaxyCur), out = [];
+  if (!n){ out.push({ text: '星图上没有选中的星系。', fg: 'ui_dim' }); return out; }
+  out.push({ text: ' ' + n.name + '　' + g.galaxyOwnerName(n.owner), fg: 'ui_bright' });
+  out.push({ text: ' 坐标 (' + n.x + ',' + n.y + ')　航道 ' + n.links.length + ' 条', fg: 'ui' });
+  if (n.fleets) out.push({ text: ' 驻留舰队 ' + n.fleets, fg: 'accent' });
+  if (n.pollution) out.push({ text: ' 污染 ' + n.pollution, fg: 'danger' });
+  var cur = g.fleetAt(), hops = g.fleetHopsBetween(cur, n.id);
+  out.push({ text: ' 主力在 ' + g.galaxyName(cur) +
+                   (hops > 0 ? '，到这儿 ' + hops + ' 跳（约 ' + Math.round(hops * 120 / 60) + ' 小时）'
+                             : (hops === 0 ? '（就在这儿）' : '，没有航道能过来')), fg: 'ui_dim' });
+  if (n.desc) out.push({ text: ' ' + n.desc, fg: 'ui_dim' });
+  return out;
+});
 registerViewProvider('colonies_live', function(g){
   var out = [], cols = asList(g.space && g.space.colonies);
   var pop = 0, mor = 0;

@@ -360,8 +360,20 @@ if (modList && modList.addEventListener){
       else if (k === 'Escape' || k === 'l' || k === 'L') g.closeReader();
       render(); drawInfo(); e.preventDefault(); return;
     }
+    /* --- 星图模式（第 1 期）：方向键选星系、Enter 打开、G 切换 --- */
+    if (g.screenMode === 'galaxy' && !g.ui.view && !g.ui.dialogue){
+      var gd = { 'ArrowUp': [0, -1], 'w': [0, -1], 'ArrowDown': [0, 1], 's': [0, 1],
+                 'ArrowLeft': [-1, 0], 'a': [-1, 0], 'ArrowRight': [1, 0], 'd': [1, 0] }[k];
+      if (gd){ g.galaxyMove(gd[0], gd[1]); render(); drawInfo(); e.preventDefault(); return; }
+      if (k === 'Enter' || k === 'e' || k === 'E'){ g.galaxyOpenNode(); render(); drawInfo(); e.preventDefault(); return; }
+      if (k === 'g' || k === 'G'){ g.toggleGalaxy(false); resize(); render(); drawInfo(); e.preventDefault(); return; }
+      if (k === 'Escape'){ g.toggleGalaxy(false); resize(); render(); drawInfo(); e.preventDefault(); return; }
+    }
     if (k === 'F3'){ g.openView('debug'); resize(); drawInfo(); e.preventDefault(); return; }
     if (k === 'F4'){ infoEl.classList.toggle('hidden'); resize(); drawInfo(); e.preventDefault(); return; }
+    if ((k === 'g' || k === 'G') && !g.ui.view && !g.ui.dialogue && g.screenMode !== 'galaxy'){
+      g.toggleGalaxy(true); resize(); render(); drawInfo(); e.preventDefault(); return;
+    }
     if (k === '?' || k === '/'){ g.openView('help'); render(); drawInfo(); e.preventDefault(); return; }
     if (k === 'l' || k === 'L'){ g.openReader({ title: '日志全文', lines: g.readerLog() }); render(); drawInfo(); e.preventDefault(); return; }
     if (k === 'm' || k === 'M'){ g.openReader({ title: '任务与指令', lines: g.readerOrders() }); render(); drawInfo(); e.preventDefault(); return; }

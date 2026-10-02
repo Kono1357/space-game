@@ -148,7 +148,15 @@ section('④ 星图屏幕：画得出来、选得动、走得了 ★');
   var c = scan();
   ok('地图窗口里画出了星系（' + c.star + ' 个 *）★', c.star >= 40, c.star);
   ok('地图窗口里画出了航道（' + c.lane + ' 格）★', c.lane >= 100, c.lane);
-  ok('光标有标记（+ 与左右括号）★', c.cur >= 3, c.cur);
+  /* 光标 = 左右括号；括号里那个字符可能是 + （空星系）也可能是 ▲（主力正停在这个星系）。
+     两者重叠时舰队后画，所以不能硬要求 + 也在。 */
+  ok('光标有括号标记 ★', c.cur >= 2, c.cur);
+  ok('星图上有主力舰队标记 ▲ ★', (function (){
+    for (var y = lay.winY; y < lay.winY + lay.winH; y++)
+      for (var x = lay.winX; x < lay.winX + lay.winW; x++)
+        if (g.screen.ch[y * g.screen.w + x] === '\u25b2') return true;
+    return false;
+  })());
   ok('星图模式下**不画**玩家 @（踩过的坑：它在地图循环外面）★', c.player === 0, c.player);
 
   /* 方向选择：往右走一步，光标应该换到一个投影在右边的星系 */
@@ -190,6 +198,108 @@ section('⑤ 切回场景模式，一切照旧');
     var w0 = g.world.player.x, r = g.tryMove(1, 0);
     return r === false || g.world.player.x !== w0 || true;
   })());
+})();
+
+
+/* ---------------------------------------------------------------- ⑥ 舰队移动 */
+section('⑥ 舰队沿航道移动，要花时间 ★');
+
+(function (){
+  var g = newGame();
+  g.toggleGalaxy(true);
+  ok('开局主力在母星 ★', g.fleetAt() === 'sol', g.fleetAt());
+  ok('开局没有在移动', !g.fleetMoving());
+
+  var hops = g.fleetHopsBetween('sol', 'veil');
+  ok('算得出两地的跳数（sol -> veil = ' + hops + '）★', hops >= 1, hops);
+  ok('跳数在合理区间（1~20 跳；veil 实测 7 跳 = 14 小时）', hops >= 1 && hops <= 20, hops);
+  ok('没有航道的地方返回 -1（不去瞎算）', g.fleetHopsBetween('sol', '不存在的星系') === -1);
+
+  var t0 = g.world.tick;
+  ok('派遣成功', g.fleetSend('veil') === true);
+  ok('派遣后进入移动状态 ★', g.fleetMoving());
+  ok('到达时间 = 现在 + 跳数 x 每跳 tick ★',
+     g.world.fleetMv.t1 === t0 + hops * Core.num(built.space.config.fleetTicksPerHop, 120),
+     g.world.fleetMv.t1 + ' vs ' + (t0 + hops * 120));
+  ok('该星系名字被记进日志', g.world.log.some(function (e){ return String(e.text).indexOf('前往') >= 0; }));
+
+  /* 移动中：位置在两地之间插值，不在任何一个端点上 */
+  var lay = g.layout(), proj = g.galaxyProject(lay);
+  var pa = proj['sol'], pb = proj['veil'];
+  g.step(Math.floor((g.world.fleetMv.t1 - t0) / 2));
+  ok('半路上：仍然算"移动中" ★', g.fleetMoving());
+  var fp = g.fleetScreenPos(proj);
+  ok('半路上：舰队画在两地之间（不是瞬间传送）★',
+     fp && (fp.x !== pa.x || fp.y !== pa.y) && (fp.x !== pb.x || fp.y !== pb.y),
+     JSON.stringify(fp) + ' 端点 ' + JSON.stringify(pa) + '/' + JSON.stringify(pb));
+
+  g.step(g.world.fleetMv.t1 - g.world.tick + 1);
+  ok('到点之后停在目标星系 ★', !g.fleetMoving() && g.fleetAt() === 'veil', g.fleetAt());
+  ok('抵达有日志', g.world.log.some(function (e){ return String(e.text).indexOf('主力抵达') >= 0; }));
+
+  /* 移动中不能重复派遣（不然会瞬移） */
+  var g2 = newGame(); g2.toggleGalaxy(true);
+  g2.fleetSend('veil');
+  ok('移动中再派一次会被挡住 ★', g2.fleetSend('sol') === false);
+  ok('挡下来之后目标没被改', g2.world.fleetMv.to === 'veil', g2.world.fleetMv.to);
+
+  /* 开到敌对星系门口，对方会记账 */
+  var g3 = newGame(); g3.toggleGalaxy(true);
+  var before = Core.num(g3.world.counters.rel_abyss, 0);
+  g3.fleetSend('rift7');
+  g3.step(1440);
+  ok('把主力开到深渊的星系，态度会变差 ★',
+     Core.num(g3.world.counters.rel_abyss, 0) < before,
+     before + ' -> ' + Core.num(g3.world.counters.rel_abyss, 0));
+})();
+
+/* ---------------------------------------------------------------- ⑦ 节点菜单与降落 */
+section('⑦ 节点菜单打开得出，降落真的落得下去 ★');
+
+(function (){
+  var g = newGame();
+  g.toggleGalaxy(true);
+  g.galaxyCur = 'sol';
+  ok('内容里有 galaxy_node 视图（引擎按名字开门）', !!built.idx.views['galaxy_node']);
+  ok('按 Enter 能打开这个星系的菜单 ★', g.galaxyOpenNode() === true);
+  ok('打开的是 galaxy_node', g.ui.view && g.ui.view.id === 'galaxy_node', g.ui.view && g.ui.view.id);
+  var acts = (g.ui.view.actions || []).map(function (a){ return a.text; });
+  ok('菜单里有「派遣」和「降落」★',
+     acts.some(function (t){ return t.indexOf('派遣') >= 0; }) &&
+     acts.some(function (t){ return t.indexOf('降落') >= 0; }), JSON.stringify(acts));
+  ok('菜单内容里写着主力在哪（galaxy_sel 读的是真状态）★',
+     (g.ui.view.lines || []).some(function (l){ return String(l.text).indexOf('主力在') >= 0; }),
+     JSON.stringify((g.ui.view.lines || []).map(function (l){ return l.text; }).slice(0, 4)));
+  g.closeView();
+
+  /* 降落：有 scene 的星系能落，没 scene 的明确说不能 */
+  var g2 = newGame();
+  g2.toggleGalaxy(true);
+  var landed = g2.galaxyLand('sol3');
+  ok('母星 III 有地表，能降落 ★', landed === true);
+  ok('降落后切回场景模式 ★', g2.screenMode === 'scene', g2.screenMode);
+  ok('人真的在那个场景里 ★', g2.world.player.scene === 'colony_command', g2.world.player.scene);
+
+  var g3 = newGame(); g3.toggleGalaxy(true);
+  ok('没有地表的星系：明确说不能降，不静默失败 ★', g3.galaxyLand('veil') === false);
+  ok('不能降时仍然停在星图模式（不会把人丢在原地）', g3.screenMode === 'galaxy');
+  ok('给出了原因', g3.world.log.some(function (e){ return String(e.text).indexOf('没有可降落的地表') >= 0; }));
+})();
+
+/* ---------------------------------------------------------------- ⑧ 舰队的存档 */
+section('⑧ 舰队位置进存档');
+
+(function (){
+  var g = newGame();
+  g.toggleGalaxy(true);
+  g.fleetSend('veil');
+  g.step(200);
+  var snap = g.serialize();
+  var g2 = newGame();
+  g2.deserialize(snap);
+  ok('读档后主力还在路上（位置与到达时间都带过来）★',
+     g2.fleetAt() === 'sol' && g2.world.fleetMv.to === 'veil' && g2.world.fleetMv.t1 === g.world.fleetMv.t1,
+     JSON.stringify(g2.world.fleetMv));
 })();
 
 console.log('\n========================================');

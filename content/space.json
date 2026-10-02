@@ -26496,6 +26496,59 @@
       ]
      }
     ]
+   },
+   {
+    "id": "galaxy_node",
+    "title": "星系",
+    "width": 78,
+    "sections": [
+     {
+      "title": " 这里是什么 ",
+      "provider": "galaxy_sel"
+     },
+     {
+      "title": " 能做什么 ",
+      "lines": [
+       " 派遣：把主力舰队调过去（沿航道走，要时间；到了敌对星系对方会记账）",
+       " 降落：如果这个星系有地表，就切到那里走走（比如母星索尔）"
+      ]
+     },
+     {
+      "title": " 图例 ",
+      "lines": [
+       " * 星系　[+] 光标　- | / \\ 航道　▲ 主力舰队　^ 有驻留舰队"
+      ]
+     }
+    ],
+    "actions": [
+     {
+      "text": "派遣主力舰队过去",
+      "effects": [
+       {
+        "type": "fleet_send"
+       },
+       {
+        "type": "close_view"
+       }
+      ]
+     },
+     {
+      "text": "降落",
+      "effects": [
+       {
+        "type": "galaxy_land"
+       }
+      ]
+     },
+     {
+      "text": "关闭",
+      "effects": [
+       {
+        "type": "close_view"
+       }
+      ]
+     }
+    ]
    }
   ]
  },
@@ -32971,7 +33024,8 @@
      "furnace",
      "sol2",
      "sol3"
-    ]
+    ],
+    "scene": "station_command"
    },
    {
     "id": "sol2",
@@ -33005,7 +33059,8 @@
      "sol",
      "sol2",
      "sol4"
-    ]
+    ],
+    "scene": "colony_command"
    },
    {
     "id": "sol4",
@@ -33021,7 +33076,8 @@
      "echohub",
      "sol2",
      "sol3"
-    ]
+    ],
+    "scene": "planet_landing"
    },
    {
     "id": "veil",
